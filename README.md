@@ -1,2 +1,9 @@
 # sys6018-competition-house-prices
-SYS 6018 Competition 2
+
+# Linear Models
+Linear Regression
+?
+
+# Non-Linear Models
+KNN
+?
