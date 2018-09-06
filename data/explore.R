@@ -263,16 +263,16 @@ train$Fence[is.na(train$Fence)] = "None"
 levels(train$MiscFeature) = c(levels(train$MiscFeature), "None")
 train$MiscFeature[is.na(train$MiscFeature)] = "None"
 
-# Now let's check which values are missing
-miss.2 = sapply(train, function(x) length(which(is.na(x))))
-miss.2[miss.2>0]
-
 # Now we check for levels, because some entries may not have been assumed
 # to be factors. For example the first case with MSSubClass the diferent
 # numbers actually correspond to different classes. We have to manually set
 # these as levels instead.
 lv = sapply(train, function(x) levels(x))
-train$MsSubClass = factor(train$MsSubClass)
+trian$MSSubClass = factor(train$MSSubClass)
+
+# Now let's check which values are missing
+miss.2 = sapply(train, function(x) length(which(is.na(x))))
+miss.2[miss.2>0]
 
 # Let's drop the rows where there are missing values.
 # The alternative would be to use interpolation but the overall loss would
@@ -294,3 +294,6 @@ miss.new
 # assessments. However, if this is an aggregate score from a survey this bias
 # can be mitigated. This is also the case with number of bathrooms and bedrooms.
 hist(train$OverallQual)
+
+# The data is now cleaned up and ready to be used in analysis
+write.csv(train.new, file="train_cleaned.csv")
