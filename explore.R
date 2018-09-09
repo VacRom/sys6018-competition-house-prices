@@ -1,8 +1,12 @@
 # Exploratory analysis on the data
 
 # If you don't have this package, uncomment and run this next line
+
 # install.packages("mvoutlier")
 library(mvoutlier)
+
+# install.packages("dummies")
+library(dummies)
 
 # Set your working directory
 wd = "F:/2018 Fall/SYS 6018/assignments/kaggle/02_Housing/data"
@@ -500,6 +504,9 @@ train.new$SalePrice = log(train.new$SalePrice)
 # Rerun plots
 for (i in names(train.new)){plot(train.new[[i]], train.new$SalePrice, xlab=i)}
 
+# Drop ID variable since it's just for notation/organization not a predictor
+train.new$Id = NULL
+
 # Finally let's see how many categorical variables we have
 cat.count = 0
 total.count = 0
@@ -518,4 +525,13 @@ total.count
 # Outliers will be handled differently depending on each model used.
 
 # The data is now cleaned up and ready to be used in analysis
-write.csv(train.new, file="train_cleaned.csv")
+write.csv(train.new, file="train_cleaned.csv", row.names=FALSE)
+
+# Try dummy variables for columns where this is no particular order
+# for the categorical variables
+
+# Go through all of the variables and remove the ones where we already
+# refactored them
+name.1 = names(Filter(is.factor, train.new))
+dum.1 = dummy.data.frame(train.new, names=name.1)
+write.csv(dum.1, file="train_cleaned_dummy.csv", row.names=FALSE)
