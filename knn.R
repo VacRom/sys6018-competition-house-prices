@@ -8,6 +8,9 @@ train = read.csv("train_cleaned_dummy.csv")
 # cols = unlist(lapply(train, is.numeric))
 # train = train[cols]
 
+Y = train$SalePrice
+train$SalePrice = NULL
+
 ### Here will be the data analyzed using all variables given to us including dummies
 
 # Standardize the data
@@ -48,6 +51,9 @@ biplot(PCA, scale=0)
 # the categorical variables which we cannot order?
 
 train.2 = read.csv("train_cleaned.csv")
+Y.2 = train.2$SalePrice
+train.2$SalePrice = NULL
+
 name = names(Filter(is.numeric, train.2))
 train.numerical = train.2[,name]
 
@@ -159,3 +165,18 @@ plot(lists)
 ### We need a different method of dimensionality reduction. How about using
 # something along the lines of linear regression to find which variables are
 # 'of the most importance'?
+
+# Check to see which variables are most correlated with price
+cor=t(as.data.frame(cor(Y,train)))
+cor.abs=as.data.frame(unlist(lapply(cor[,1], abs)))
+names(cor.abs) = c("abs.cor")
+
+values = cor.abs[order(-cor.abs),,drop=FALSE][1:20,,drop=FALSE]
+values
+
+X.select = train[,c(rownames(values))]
+Y.val = as.data.frame(Y)
+names(Y.val) = c("SalesPrice")
+# Here is the correlation matrix
+cormat=cor(cbind(Y.val,X.select))
+cormat
