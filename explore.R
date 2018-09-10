@@ -1,32 +1,52 @@
-# Exploratory analysis on the data
+# Exploratory analysis on the data and data cleaning
 
-# If you don't have this package, uncomment and run this next line
+##########
+# Step 1 #
+##########
+# Start reading in the data.
 
+#####################################################################
+# If you don't have these packages, uncomment and run these lines.  #
+#####################################################################
 # install.packages("mvoutlier")
-library(mvoutlier)
-
 # install.packages("dummies")
+
+library(mvoutlier)
 library(dummies)
 
-# Set your working directory
-wd = "F:/2018 Fall/SYS 6018/assignments/kaggle/02_Housing/data"
-setwd(wd)
+##############################
+# Set your working directory #
+##############################
+wd = "F:/2018 Fall/SYS 6018/assignments/kaggle/02_Housing/"
+setwd(paste(wd,"sys6018-competition-house-prices/original_files",sep=""))
 
-# It doesn't look clean in R, just open it up in MS Word
+# This is the descriptions of the data in a text format.
+# It doesn't look clean in R, just open it up in MS Word.
 desc = read.table("data_description.txt", sep="\n")
 
 # It looks like there are a number of variables (mostly categorical)
-
 train = read.csv("train.csv")
 head(train)
+test = read.csv("test.csv")
+head(test)
 
-# Apply the temporary function across the data
+##########
+# Step 2 #
+##########
+# Basic data cleaning
+
+# Separate the SalesPrice from the rest of the data. It's not a predictor
+train.Y = train$SalePrice
+train$SalePrice = NULL
+
+# Apply the temporary function across the data.
 # This function takes each column and checks to see if there are any missing
-# values. Then it puts their indexes into a list and outputs the length of
-# this list
+# values in the column. Then it counts the number of indexes where there
+# were missing values found. In other words, it outputs the number of missing values
+# in each of the columns.
 miss = sapply(train, function(x) length(which(is.na(x))))
 
-# Output the data frame given that there are some missing values
+# Outputs a table which shows how many values are missing for each column.
 miss.df = data.frame(miss[miss>0])
 names(miss.df) = "number_of_missing_values"
 miss.df
@@ -59,434 +79,288 @@ miss.df.p
 # Fence                     80.75342466
 # MiscFeature               96.30136986
 
-# Let's explore these variables:
+# Repeat for the test data.
+miss.t = sapply(test, function(x) length(which(is.na(x))))
+data.frame(miss.t[miss.t>0])/dim(test)[1]
+
+# MSZoning            0.002741604
+# LotFrontage         0.155586018
+# Alley               0.926662097
+# Utilities           0.001370802
+# Exterior1st         0.000685401
+# Exterior2nd         0.000685401
+# MasVnrType          0.010966415
+# MasVnrArea          0.010281014
+# BsmtQual            0.030157642
+# BsmtCond            0.030843043
+# BsmtExposure        0.030157642
+# BsmtFinType1        0.028786840
+# BsmtFinSF1          0.000685401
+# BsmtFinType2        0.028786840
+# BsmtFinSF2          0.000685401
+# BsmtUnfSF           0.000685401
+# TotalBsmtSF         0.000685401
+# BsmtFullBath        0.001370802
+# BsmtHalfBath        0.001370802
+# KitchenQual         0.000685401
+# Functional          0.001370802
+# FireplaceQu         0.500342700
+# GarageType          0.052090473
+# GarageYrBlt         0.053461275
+# GarageFinish        0.053461275
+# GarageCars          0.000685401
+# GarageArea          0.000685401
+# GarageQual          0.053461275
+# GarageCond          0.053461275
+# PoolQC              0.997943797
+# Fence               0.801233722
+# MiscFeature         0.965044551
+# SaleType            0.000685401
+
+# There are different kinds of missing data for each of the data sets.
+# This will make it very difficult to interpolate or fix missing data points.
+# Instead let's try combining the data and fixing the missing data points as
+# a whole instead, then reseparating them by ID (?)
+
+data = rbind(train, test)
+data$Id = NULL
+head(data)
+
+##########
+# Step 3 #
+##########
+# Filling in missing values and adding factor levels.
+
+# Let's begin by exploring these variables and seeing what we can do with them.
+# There are some NA values---but these NA values aren't actually missing.
+# In fact they do represent some useful information.
+# For each individual case, determine what NA actually means.
+
+# Regarding variable types, there are three general ones to keep in mind.
+# 1. Numerical. These are simple numerical values
+# 2. Factor (Ordered). These are categorical variables with some order to them
+# (i.e. Rating from 1-10). We can turn these into numerical variables
+# BUT BE WARNED THERE ARE A FEW ASSUMPTIONS THAT COME WITH THIS.
+# 3. Factor (Unordered). These are categorical variables without order.
+# (i.e. Red, Green, Blue). For these we can use one-hot encoding by using
+# dummy variables to represent each of the different levels.
+
+# MSZoning: Identifies the general zoning classification of the sale.
+# Insert mode
+summary(data$MSZoning)
+data$MSZoning[is.na(data$MSZoning)] = "RL"
+
+# Utilities: Type of utilities available
+# Insert mode
+summary(data$Utilities)
+data$Utilities[is.na(data$Utilities)] = "AllPub"
+
+# Exterior1st: Exterior covering on house
+levels(data$Exterior1st) = c(levels(data$Exterior1st), "None")
+data$Exterior1st[is.na(data$Exterior1st)] = "None"
+
+# Exterior2nd: Exterior covering on house (if more than one material)
+levels(data$Exterior2nd) = c(levels(data$Exterior2nd), "None")
+data$Exterior2nd[is.na(data$Exterior2nd)] = "None"
+
+# BsmtFinSF1: Type 1 finished square feet
+data$BsmtFinSF1[is.na(data$BsmtFinSF1)] = 0
+
+# BsmtFinSF2: Type 2 finished square feet
+data$BsmtFinSF2[is.na(data$BsmtFinSF2)] = 0
+
+# BsmtUnfSF: Unfinished square feet of basement area
+data$BsmtUnfSF[is.na(data$BsmtUnfSF)] = 0
+
+# TotalBsmtSF: Total square feet of basement area
+data$TotalBsmtSF[is.na(data$TotalBsmtSF)] = 0
+
+# BsmtFullBath: Basement full bathrooms
+data$BsmtFullBath[is.na(data$BsmtFullBath)] = 0
+
+# BsmtHalfBath: Basement half bathrooms
+data$BsmtHalfBath[is.na(data$BsmtHalfBath)] = 0
+
+# KitchenQual: Kitchen quality
+levels(data$KitchenQual) = c(levels(data$KitchenQual), "None")
+data$KitchenQual[is.na(data$KitchenQual)] = "None"
+
+# Functional: Home functionality (Assume typical unless deductions are warranted)
+levels(data$Functional) = c(levels(data$Functional), "None")
+data$Functional[is.na(data$Functional)] = "None"
+
+# GarageCars: Size of garage in car capacity
+levels(data$GarageCars) = c(levels(data$GarageCars), "None")
+data$GarageCars[is.na(data$GarageCars)] = "None"
+
+# GarageArea: Size of garage in square feet
+levels(data$GarageArea) = c(levels(data$GarageArea), "None")
+data$GarageArea[is.na(data$GarageArea)] = "None"
+
+# SaleType: Type of sale
+data$SaleType[is.na(data$SaleType)] = "Oth"
 
 # LotFrontage: Linear feet of street connected to property
-#
-# With about 17% loss we should be able to interpolate this, unless it's
-# supposed to mean 0. Check to see the distribution
-hist(train$LotFrontage)
-# These many are missing
-sum(is.na(train$LotFrontage))
-# It would not be ridiculous to assume that some houses have 0 lot frontage
-summary(train$LotFrontage)
-# The minimum value is 21, so maybe it is feasible that 0 is the valid answer.
-# Maybe try plotting type of lot vs. frontage?
-plot(train$LotConfig,train$LotFrontage)
-# Maybe try checking which types of lots have the most missing values?
-table(train$LotConfig[is.na(train$LotFrontage)])
-# It looks like houses on the inside have the most missing values. This is
-# because a house with no access to the sidewalk would have no or little
-# access to the street. We are then justified with setting the value of NA to 0
-train$LotFrontage[is.na(train$LotFrontage)] = 0
+# Using NA=0 will probably skew the data points to the left too much.
+data$LotFrontage[is.na(data$LotFrontage)] = median(data$LotFrontage[!is.na(data$LotFrontage)])
 
 # Alley: Type of alley access to property
-# Grvl	Gravel
-# Pave	Paved
-# NA 	No alley access
-#
 # Factor NA as a third variable, it's not actually missing data
 # Set this as "None"
-levels(train$Alley) = c(levels(train$Alley), "None")
-train$Alley[is.na(train$Alley)] = "None"
+levels(data$Alley) = c(levels(data$Alley), "None")
+data$Alley[is.na(data$Alley)] = "None"
 
 # MasVnrType: Masonry veneer type
-# BrkCmn	Brick Common
-# BrkFace	Brick Face
-# CBlock	Cinder Block
-# None	None
-# Stone	Stone
-#
-# This is actually missing. With such a low percentage missing rows
-# can be dropped with minimal consequence. Maybe we can interpolate.
+# Again NA probably means none.
+data$MasVnrType[is.na(data$MasVnrType)] = "None"
 
 # MasVnrArea: Masonry veneer area in square feet
-#
-# Same missing value percentage as the previous variable. Maybe they are linked.
-row.names(train[is.na(train$MasVnrArea),])==row.names(train[is.na(train$MasVnrArea),])
-# Yes they are the same rows. Maybe there's a systematic error?
-# We will look into interpolation later
+data$MasVnrArea[is.na(data$MasVnrArea)] = 0
 
 # BsmtQual: Evaluates the height of the basement
-# 
-# Ex	Excellent (100+ inches)	
-# Gd	Good (90-99 inches)
-# TA	Typical (80-89 inches)
-# Fa	Fair (70-79 inches)
-# Po	Poor (<70 inches
-# NA	No Basement
-#
-# This is not missing. Set new level as None.
-levels(train$BsmtQual) = c(levels(train$BsmtQual), "None")
-train$BsmtQual[is.na(train$BsmtQual)] = "None"
+levels(data$BsmtQual) = c(levels(data$BsmtQual), "None")
+data$BsmtQual[is.na(data$BsmtQual)] = "None"
 
-# Just repeat for these following variables
 # BsmtExposure: Refers to walkout or garden level walls
-# 
-# Gd	Good Exposure
-# Av	Average Exposure (split levels or foyers typically score average or above)	
-# Mn	Mimimum Exposure
-# No	No Exposure
-# NA	No Basement
-levels(train$BsmtExposure) = c(levels(train$BsmtExposure), "None")
-train$BsmtExposure[is.na(train$BsmtExposure)] = "None"
+levels(data$BsmtExposure) = c(levels(data$BsmtExposure), "None")
+data$BsmtExposure[is.na(data$BsmtExposure)] = "None"
 
 # BsmtCond: Evaluates the general condition of the basement
-# 
-# Ex	Excellent
-# Gd	Good
-# TA	Typical - slight dampness allowed
-# Fa	Fair - dampness or some cracking or settling
-# Po	Poor - Severe cracking, settling, or wetness
-# NA	No Basement
-levels(train$BsmtCond) = c(levels(train$BsmtCond), "None")
-train$BsmtCond[is.na(train$BsmtCond)] = "None"
+levels(data$BsmtCond) = c(levels(data$BsmtCond), "None")
+data$BsmtCond[is.na(data$BsmtCond)] = "None"
 
 # BsmtFinType1: Rating of basement finished area
-# 
-# GLQ	Good Living Quarters
-# ALQ	Average Living Quarters
-# BLQ	Below Average Living Quarters	
-# Rec	Average Rec Room
-# LwQ	Low Quality
-# Unf	Unfinshed
-# NA	No Basement
-# 
-levels(train$BsmtFinType1) = c(levels(train$BsmtFinType1), "None")
-train$BsmtFinType1[is.na(train$BsmtFinType1)] = "None"
+levels(data$BsmtFinType1) = c(levels(data$BsmtFinType1), "None")
+data$BsmtFinType1[is.na(data$BsmtFinType1)] = "None"
 
 # BsmtFinType2: Rating of basement finished area (if multiple types)
-# 
-# GLQ	Good Living Quarters
-# ALQ	Average Living Quarters
-# BLQ	Below Average Living Quarters	
-# Rec	Average Rec Room
-# LwQ	Low Quality
-# Unf	Unfinshed
-# NA	No Basement
-levels(train$BsmtFinType2) = c(levels(train$BsmtFinType2), "None")
-train$BsmtFinType2[is.na(train$BsmtFinType2)] = "None"
+levels(data$BsmtFinType2) = c(levels(data$BsmtFinType2), "None")
+data$BsmtFinType2[is.na(data$BsmtFinType2)] = "None"
 
 # Electrical: Electrical system
-# 
-# SBrkr	Standard Circuit Breakers & Romex
-# FuseA	Fuse Box over 60 AMP and all Romex wiring (Average)	
-# FuseF	60 AMP Fuse Box and mostly Romex wiring (Fair)
-# FuseP	60 AMP Fuse Box and mostly knob & tube wiring (poor)
-# Mix	  Mixed
-#
-# Only one data point is missing. This is probably an error and is droppable.
-train[is.na(train$Electrical),]
+# Replace with the mode since we can't calculate an 'average'
+summary(data$Electrical[!is.na(data$Electrical)])
+data$Electrical[is.na(data$Electrical)] = "SBrkr"
 
 # FireplaceQu: Fireplace quality
-# 
-# Ex	Excellent - Exceptional Masonry Fireplace
-# Gd	Good - Masonry Fireplace in main level
-# TA	Average - Prefabricated Fireplace in main living area or Masonry Fireplace in basement
-# Fa	Fair - Prefabricated Fireplace in basement
-# Po	Poor - Ben Franklin Stove
-# NA	No Fireplace
-levels(train$FireplaceQu) = c(levels(train$FireplaceQu), "None")
-train$FireplaceQu[is.na(train$FireplaceQu)] = "None"
+levels(data$FireplaceQu) = c(levels(data$FireplaceQu), "None")
+data$FireplaceQu[is.na(data$FireplaceQu)] = "None"
 
 # GarageType: Garage location
-# 
-# 2Types	More than one type of garage
-# Attchd	Attached to home
-# Basment	Basement Garage
-# BuiltIn	Built-In (Garage part of house - typically has room above garage)
-# CarPort	Car Port
-# Detchd	Detached from home
-# NA	No Garage
-levels(train$GarageType) = c(levels(train$GarageType), "None")
-train$GarageType[is.na(train$GarageType)] = "None"
+levels(data$GarageType) = c(levels(data$GarageType), "None")
+data$GarageType[is.na(data$GarageType)] = "None"
 
 # GarageYrBlt: Year garage was built
-# 
-# This correlates with the "No" basements section. There are a number of ways to
-# tackle this problem. It will be set to 0, temporarily
-train$GarageYrBlt[is.na(train$GarageYrBlt)] = 0 
+# Either set arbitrarily to 0 or set as a factor.
+# Setting as a factor is okay if we can order it later.
+# For now set to 0.
+
+# Also, I noticed that there's a year for "2207". This is probably "2007".
+data$GarageYrBlt[data$GarageYrBlt==2207] = 2007
+data$GarageYrBlt = factor(data$GarageYrBlt,levels=1890:2010)
+# Set this value to a value lower than the other data points (temporary)
+data$GarageYrBlt[is.na(data$GarageYrBlt)] = 1890
 
 # GarageFinish: Interior finish of the garage
-# 
-# Fin	Finished
-# RFn	Rough Finished	
-# Unf	Unfinished
-# NA	No Garage
-levels(train$GarageFinish) = c(levels(train$GarageFinish), "None")
-train$GarageFinish[is.na(train$GarageFinish)] = "None"
+levels(data$GarageFinish) = c(levels(data$GarageFinish), "None")
+data$GarageFinish[is.na(data$GarageFinish)] = "None"
 
 # GarageQual: Garage quality
-# 
-# Ex	Excellent
-# Gd	Good
-# TA	Typical/Average
-# Fa	Fair
-# Po	Poor
-# NA	No Garage
-# 
-levels(train$GarageQual) = c(levels(train$GarageQual), "None")
-train$GarageQual[is.na(train$GarageQual)] = "None"
+levels(data$GarageQual) = c(levels(data$GarageQual), "None")
+data$GarageQual[is.na(data$GarageQual)] = "None"
 
 # GarageCond: Garage condition
-# 
-# Ex	Excellent
-# Gd	Good
-# TA	Typical/Average
-# Fa	Fair
-# Po	Poor
-# NA	No Garage
-levels(train$GarageCond) = c(levels(train$GarageCond), "None")
-train$GarageCond[is.na(train$GarageCond)] = "None"
+levels(data$GarageCond) = c(levels(data$GarageCond), "None")
+data$GarageCond[is.na(data$GarageCond)] = "None"
 
 # PoolQC: Pool quality
-# 
-# Ex	Excellent
-# Gd	Good
-# TA	Average/Typical
-# Fa	Fair
-# NA	No Pool
-levels(train$PoolQC) = c(levels(train$PoolQC), "None")
-train$PoolQC[is.na(train$PoolQC)] = "None"
+levels(data$PoolQC) = c(levels(data$PoolQC), "None")
+data$PoolQC[is.na(data$PoolQC)] = "None"
 
 # Fence: Fence quality
-# 
-# GdPrv	Good Privacy
-# MnPrv	Minimum Privacy
-# GdWo	Good Wood
-# MnWw	Minimum Wood/Wire
-# NA	No Fence
-levels(train$Fence) = c(levels(train$Fence), "None")
-train$Fence[is.na(train$Fence)] = "None"
+levels(data$Fence) = c(levels(data$Fence), "None")
+data$Fence[is.na(data$Fence)] = "None"
 
 # MiscFeature: Miscellaneous feature not covered in other categories
-# 
-# Elev	Elevator
-# Gar2	2nd Garage (if not described in garage section)
-# Othr	Other
-# Shed	Shed (over 100 SF)
-# TenC	Tennis Court
-# NA	None
-levels(train$MiscFeature) = c(levels(train$MiscFeature), "None")
-train$MiscFeature[is.na(train$MiscFeature)] = "None"
+levels(data$MiscFeature) = c(levels(data$MiscFeature), "None")
+data$MiscFeature[is.na(data$MiscFeature)] = "None"
+
+miss.2 = sapply(data, function(x) length(which(is.na(x))))
+miss.2[miss.2>0]
 
 # Now we check for levels, because some entries may not have been assumed
 # to be factors. For example the first case with MSSubClass the diferent
 # numbers actually correspond to different classes. We have to manually set
 # these as levels instead.
-lv = sapply(train, function(x) levels(x))
-train$MSSubClass = factor(train$MSSubClass)
+lv = sapply(data, function(x) levels(x))
+data$MSSubClass = factor(data$MSSubClass)
 
-# Also we should try to make factors into numerical values whenever
+##########
+# Step 4 #
+##########
+# Organize and order the factors in a logical way.
+
+# Also we should try to make factors into ordered categorical variables.
 # they make sense. (i.e. Low, Medium, High become 1, 2, and 3).
-train$LotShape = as.character(train$LotShape)
-train$LotShape[train$LotShape=="Reg"] = 0
-train$LotShape[train$LotShape=="IR1"] = 1
-train$LotShape[train$LotShape=="IR2"] = 2
-train$LotShape[train$LotShape=="IR3"] = 3
-train$LotShape = as.numeric(train$LotShape)
+# TO COMPLETELY AUTOMATE THIS WE COULD SORT BY MEDIAN BUT THERE ARE CIRCUMSTANCES
+# WHERE DUE TO INCOMPLETE DATA THAT WE COULD ACCIDENTALLY ORDER IT IN THE WRONG WAY
 
-train$Utilities = as.character(train$Utilities)
-train$Utilities[train$Utilities=="ELO"] = 0
-train$Utilities[train$Utilities=="NoSeWa"] = 1
-train$Utilities[train$Utilities=="NoSewr"] = 2
-train$Utilities[train$Utilities=="AllPub"] = 3
-train$Utilities = as.numeric(train$Utilities)
+# (1) Special cases, where the factor levels are unique.
 
-train$LandSlope = as.character(train$LandSlope)
-train$LandSlope[train$LandSlope=="Gtl"] = 0
-train$LandSlope[train$LandSlope=="Mod"] = 1
-train$LandSlope[train$LandSlope=="Sev"] = 2
-train$LandSlope = as.numeric(train$LandSlope)
+data$LotShape=ordered(data$LotShape,levels=c("Reg","IR1","IR2","IR3"))
+data$BsmtExposure=ordered(data$BsmtExposure,levels=c("None","No","Mn","Av","Gd"))
+data$Electrical=ordered(data$Electrical,levels=c("Mix","FuseP","FuseF","FuseA","SBrkr"))
+data$Functional=ordered(data$Functional,levels=c("None","Sal","Sev","Maj2","Maj1","Mod","Min2","Min1","Typ"))
+data$GarageFinish=ordered(data$GarageFinish,levels=c("None","Unf","RFn","Fin"))
+data$Fence=ordered(data$Fence,levels=c("None","MnWw","GdWo","MnPrv","GdPrv"))
 
-train$ExterQual = as.character(train$ExterQual)
-train$ExterQual[train$ExterQual=="Ex"] = 4
-train$ExterQual[train$ExterQual=="Gd"] = 3
-train$ExterQual[train$ExterQual=="TA"] = 2
-train$ExterQual[train$ExterQual=="Fa"] = 1
-train$ExterQual[train$ExterQual=="Po"] = 0
-train$ExterQual = as.numeric(train$ExterQual)
+# (2) Naming schemes, where the factor levels use a common naming scheme
 
-train$ExterCond = as.character(train$ExterCond)
-train$ExterCond[train$ExterCond=="Ex"] = 4
-train$ExterCond[train$ExterCond=="Gd"] = 3
-train$ExterCond[train$ExterCond=="TA"] = 2
-train$ExterCond[train$ExterCond=="Fa"] = 1
-train$ExterCond[train$ExterCond=="Po"] = 0
-train$ExterCond = as.numeric(train$ExterCond)
+ranks.1 = c("None","Po","Fa","TA","Gd","Ex")
+ord.1 = c("ExterQual","ExterCond","BsmtQual","BsmtCond","HeatingQC",
+          "KitchenQual", "FireplaceQu","GarageQual","GarageCond",
+          "PoolQC")
+set.1 = list(ranks.1,ord.1)
 
-train$BsmtQual = as.character(train$BsmtQual)
-train$BsmtQual[train$BsmtQual=="Ex"] = 5
-train$BsmtQual[train$BsmtQual=="Gd"] = 4
-train$BsmtQual[train$BsmtQual=="TA"] = 3
-train$BsmtQual[train$BsmtQual=="Fa"] = 2
-train$BsmtQual[train$BsmtQual=="Po"] = 1
-train$BsmtQual[train$BsmtQual=="None"] = 0
-train$BsmtQual = as.numeric(train$BsmtQual)
+ranks.2 = c("None","Unf","LwQ","Rec","BLQ","ALQ","GLQ")
+ord.2 = c("BsmtFinType1","BsmtFinType2")
+set.2 = list(ranks.2,ord.2)
 
-train$BsmtCond = as.character(train$BsmtCond)
-train$BsmtCond[train$BsmtCond=="Ex"] = 5
-train$BsmtCond[train$BsmtCond=="Gd"] = 4
-train$BsmtCond[train$BsmtCond=="TA"] = 3
-train$BsmtCond[train$BsmtCond=="Fa"] = 2
-train$BsmtCond[train$BsmtCond=="Po"] = 1
-train$BsmtCond[train$BsmtCond=="None"] = 0
-train$BsmtCond = as.numeric(train$BsmtCond)
+# (3) Remaining, where the factor levels are already ordered
 
-train$BsmtExposure = as.character(train$BsmtExposure)
-train$BsmtExposure[train$BsmtExposure=="Gd"] = 4
-train$BsmtExposure[train$BsmtExposure=="Av"] = 3
-train$BsmtExposure[train$BsmtExposure=="Mn"] = 2
-train$BsmtExposure[train$BsmtExposure=="No"] = 1
-train$BsmtExposure[train$BsmtExposure=="None"] = 0
-train$BsmtExposure = as.numeric(train$BsmtExposure)
+ranks.3 = "ordered"
+ord.3 = c("Utilities","LandSlope","CentralAir","PavedDrive","GarageYrBlt")
+set.3 = list(ranks.3,ord.3)
 
-train$BsmtFinType1 = as.character(train$BsmtFinType1)
-train$BsmtFinType1[train$BsmtFinType1=="GLQ"] = 6
-train$BsmtFinType1[train$BsmtFinType1=="ALQ"] = 5
-train$BsmtFinType1[train$BsmtFinType1=="BLQ"] = 4
-train$BsmtFinType1[train$BsmtFinType1=="Rec"] = 3
-train$BsmtFinType1[train$BsmtFinType1=="LwQ"] = 2
-train$BsmtFinType1[train$BsmtFinType1=="Unf"] = 1
-train$BsmtFinType1[train$BsmtFinType1=="None"] = 0
-train$BsmtFinType1 = as.numeric(train$BsmtFinType1)
+toorder = list(set.1,set.2,set.3)
 
-train$BsmtFinType2 = as.character(train$BsmtFinType2)
-train$BsmtFinType2[train$BsmtFinType2=="GLQ"] = 6
-train$BsmtFinType2[train$BsmtFinType2=="ALQ"] = 5
-train$BsmtFinType2[train$BsmtFinType2=="BLQ"] = 4
-train$BsmtFinType2[train$BsmtFinType2=="Rec"] = 3
-train$BsmtFinType2[train$BsmtFinType2=="LwQ"] = 2
-train$BsmtFinType2[train$BsmtFinType2=="Unf"] = 1
-train$BsmtFinType2[train$BsmtFinType2=="None"] = 0
-train$BsmtFinType2 = as.numeric(train$BsmtFinType2)
+# Iterate through the above sets. If the order isn't predetermined then
+# use the else statement to specify the order.
+for (set in toorder) {
+  if (set[[1]][1] == "ordered") {
+    for (ord in set[[2]]) {
+      data[[ord]] = ordered(data[[ord]])
+    }
+  } else {
+    for (ord in set[[2]]) {
+      data[[ord]] = ordered(data[[ord]], levels=set[[1]])
+    }
+  }
+}
 
-train$HeatingQC = as.character(train$HeatingQC)
-train$HeatingQC[train$HeatingQC=="Ex"] = 5
-train$HeatingQC[train$HeatingQC=="Gd"] = 4
-train$HeatingQC[train$HeatingQC=="TA"] = 3
-train$HeatingQC[train$HeatingQC=="Fa"] = 2
-train$HeatingQC[train$HeatingQC=="Po"] = 1
-train$HeatingQC[train$HeatingQC=="None"] = 0
-train$HeatingQC = as.numeric(train$HeatingQC)
-
-train$CentralAir = as.character(train$CentralAir)
-train$CentralAir[train$CentralAir=="N"] = 0
-train$CentralAir[train$CentralAir=="Y"] = 1
-train$CentralAir = as.numeric(train$CentralAir)
-
-train$Electrical = as.character(train$Electrical)
-train$Electrical[train$Electrical=="SBrkr"] = 4
-train$Electrical[train$Electrical=="FuseA"] = 3
-train$Electrical[train$Electrical=="FuseF"] = 2
-train$Electrical[train$Electrical=="FuseP"] = 1
-train$Electrical[train$Electrical=="Mix"] = 0
-train$Electrical = as.numeric(train$Electrical)
-
-train$KitchenQual = as.character(train$KitchenQual)
-train$KitchenQual[train$KitchenQual=="Ex"] = 5
-train$KitchenQual[train$KitchenQual=="Gd"] = 4
-train$KitchenQual[train$KitchenQual=="TA"] = 3
-train$KitchenQual[train$KitchenQual=="Fa"] = 2
-train$KitchenQual[train$KitchenQual=="Po"] = 1
-train$KitchenQual[train$KitchenQual=="None"] = 0
-train$KitchenQual = as.numeric(train$KitchenQual)
-
-train$Functional = as.character(train$Functional)
-train$Functional[train$Functional=="Typ"] = 7
-train$Functional[train$Functional=="Min1"] = 6
-train$Functional[train$Functional=="Min2"] = 5
-train$Functional[train$Functional=="Mod"] = 4
-train$Functional[train$Functional=="Maj1"] = 3
-train$Functional[train$Functional=="Maj2"] = 2
-train$Functional[train$Functional=="Sev"] = 1
-train$Functional[train$Functional=="Sal"] = 0
-train$Functional = as.numeric(train$Functional)
-
-train$FireplaceQu = as.character(train$FireplaceQu)
-train$FireplaceQu[train$FireplaceQu=="Ex"] = 5
-train$FireplaceQu[train$FireplaceQu=="Gd"] = 4
-train$FireplaceQu[train$FireplaceQu=="TA"] = 3
-train$FireplaceQu[train$FireplaceQu=="Fa"] = 2
-train$FireplaceQu[train$FireplaceQu=="Po"] = 1
-train$FireplaceQu[train$FireplaceQu=="None"] = 0
-train$FireplaceQu = as.numeric(train$FireplaceQu)
-
-train$GarageFinish = as.character(train$GarageFinish)
-train$GarageFinish[train$GarageFinish=="Fin"] = 3
-train$GarageFinish[train$GarageFinish=="RFn"] = 2
-train$GarageFinish[train$GarageFinish=="Unf"] = 1
-train$GarageFinish[train$GarageFinish=="None"] = 0
-train$GarageFinish = as.numeric(train$GarageFinish)
-
-train$GarageQual = as.character(train$GarageQual)
-train$GarageQual[train$GarageQual=="Ex"] = 5
-train$GarageQual[train$GarageQual=="Gd"] = 4
-train$GarageQual[train$GarageQual=="TA"] = 3
-train$GarageQual[train$GarageQual=="Fa"] = 2
-train$GarageQual[train$GarageQual=="Po"] = 1
-train$GarageQual[train$GarageQual=="None"] = 0
-train$GarageQual = as.numeric(train$GarageQual)
-
-train$GarageCond = as.character(train$GarageCond)
-train$GarageCond[train$GarageCond=="Ex"] = 5
-train$GarageCond[train$GarageCond=="Gd"] = 4
-train$GarageCond[train$GarageCond=="TA"] = 3
-train$GarageCond[train$GarageCond=="Fa"] = 2
-train$GarageCond[train$GarageCond=="Po"] = 1
-train$GarageCond[train$GarageCond=="None"] = 0
-train$GarageCond = as.numeric(train$GarageCond)
-
-train$PavedDrive = as.character(train$PavedDrive)
-train$PavedDrive[train$PavedDrive=="Y"] = 2
-train$PavedDrive[train$PavedDrive=="P"] = 1
-train$PavedDrive[train$PavedDrive=="N"] = 0
-train$PavedDrive = as.numeric(train$PavedDrive)
-
-train$PoolQC = as.character(train$PoolQC)
-train$PoolQC[train$PoolQC=="Ex"] = 5
-train$PoolQC[train$PoolQC=="Gd"] = 4
-train$PoolQC[train$PoolQC=="TA"] = 3
-train$PoolQC[train$PoolQC=="Fa"] = 2
-train$PoolQC[train$PoolQC=="Po"] = 1
-train$PoolQC[train$PoolQC=="None"] = 0
-train$PoolQC = as.numeric(train$PoolQC)
-
-train$Fence = as.character(train$Fence)
-train$Fence[train$Fence=="GdPrv"] = 4
-train$Fence[train$Fence=="MnPrv"] = 3
-train$Fence[train$Fence=="GdWo"] = 2
-train$Fence[train$Fence=="MnWw"] = 1
-train$Fence[train$Fence=="None"] = 0
-train$Fence = as.numeric(train$Fence)
+##########
+# Step 5 #
+##########
+# General analysis.
 
 # Now let's check which values are missing
-miss.2 = sapply(train, function(x) length(which(is.na(x))))
+miss.2 = sapply(data, function(x) length(which(is.na(x))))
 miss.2[miss.2>0]
 
-# Let's drop the rows where there are missing values.
-# The alternative would be to use interpolation but the overall loss would
-# be minimal
-train.new = na.omit(train)
-# Double check for missing values
-miss.new = sapply(train.new, function(x) length(which(is.na(x))))
-miss.new
-
-# Issues: The one issue still remaining is setting the year for garage built to 0
-# This may pose problem for linear models. It may be idea to use the mean instead
-# for those models as it won't skew the data. For a robust dataset (one that
-# can work for most models) we would need to just drop those rows where
-# there are missing values---however, this also could bias the data as then
-# we are only looking at homes with garages.
-# Another problem is that grades given in categories like OverallQual are
-# assumed to be linear improvements (score from 4 to 5 is the same as 8 to 9).
-# This may not be the case as people can be biased in their subjective
-# assessments. However, if this is an aggregate score from a survey this bias
-# can be mitigated. This is also the case with number of bathrooms and bedrooms.
-hist(train$OverallQual)
-
 # Make lots of plots
-for (i in names(train.new)){plot(train.new[[i]], train.new$SalePrice, xlab=i)}
+par(mfrow=c(2,2))
+for (i in names(data)) {plot(data[[i]][1:1460],train.Y,xlab=i)}
+par(mfrow=c(1,1))
 
 # Comments:
 # For MSZoning, there are several outliers for the factor level RL.
@@ -496,42 +370,72 @@ for (i in names(train.new)){plot(train.new[[i]], train.new$SalePrice, xlab=i)}
 # This is indicitive that a transformation has to be applied to the
 # raw data before analysis! Let's try a logscale on the SalesPrice
 par(mfrow=c(2,1))
-hist(train.new$SalePrice)
-hist(log(train.new$SalePrice))
+hist(train.Y)
+hist(log(train.Y))
 par(mfrow=c(1,1))
 # Much more evenly distributed!
-train.new$SalePrice = log(train.new$SalePrice)
-# Rerun plots
-for (i in names(train.new)){plot(train.new[[i]], train.new$SalePrice, xlab=i)}
+train.Y = log(train.Y)
 
-# Drop ID variable since it's just for notation/organization not a predictor
-train.new$Id = NULL
+# Rerun plots
+par(mfrow=c(2,2))
+for (i in names(data)) {plot(data[[i]][1:1460],train.Y,xlab=i)}
+par(mfrow=c(1,1))
 
 # Finally let's see how many categorical variables we have
 cat.count = 0
 total.count = 0
-for (i in names(train.new)){
+for (i in names(data)){
   total.count = total.count + 1
-  if (is.factor(train.new[[i]])){
+  if (is.factor(data[[i]])){
     cat.count = cat.count + 1
     print(i)
-    plot(train.new[[i]],train.new$SalePrice)
   }
 }
-cat.count
-total.count
+cat.count   # 45
+total.count # 79
 
+##########
+# Step 6 #
+##########
 # Outliers
+
 # Outliers will be handled differently depending on each model used.
 
+##########
+# Step 7 #
+##########
+# Print data.
+
 # The data is now cleaned up and ready to be used in analysis
-write.csv(train.new, file="train_cleaned.csv", row.names=FALSE)
+# Let's split the results into
+# (1) Training predictors called, "train_X.csv"
+# (2) Training results called, "train_Y.csv"
+# (3) Testing predictors called, "test_X.csv"
+
+train.out = data[1:1460,]
+test.out = data[1461:2919,]
+train.Y=as.data.frame(train.Y)
+names(train.Y) = "SalePrice"
+
+setwd(paste(wd,"sys6018-competition-house-prices/cleaned_data",sep=""))
+
+write.csv(train.out, file="train_X.csv", row.names=FALSE)
+write.csv(train.Y, file="train_Y.csv", row.names=FALSE)
+write.csv(test.out, file="test_X.csv", row.names=FALSE)
+
+# Remember the sale price is log transformed!
+
+##########
+# Step 8 #
+##########
+# EXPERIMENTAL! Let's not try this until a bit later.
+
 
 # Try dummy variables for columns where this is no particular order
 # for the categorical variables
 
 # Go through all of the variables and remove the ones where we already
 # refactored them
-name.1 = names(Filter(is.factor, train.new))
-dum.1 = dummy.data.frame(train.new, names=name.1)
-write.csv(dum.1, file="train_cleaned_dummy.csv", row.names=FALSE)
+# name.1 = names(Filter(is.factor, train.new))
+# dum.1 = dummy.data.frame(train.new, names=name.1)
+# write.csv(dum.1, file="train_cleaned_dummy.csv", row.names=FALSE)
