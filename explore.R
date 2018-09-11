@@ -193,8 +193,7 @@ data$Functional[is.na(data$Functional)] = "None"
 data$GarageCars[is.na(data$GarageCars)] = 0
 
 # GarageArea: Size of garage in square feet
-levels(data$GarageArea) = c(levels(data$GarageArea), "None")
-data$GarageArea[is.na(data$GarageArea)] = "None"
+data$GarageArea[is.na(data$GarageArea)] = 0
 
 # SaleType: Type of sale
 data$SaleType[is.na(data$SaleType)] = "Oth"
