@@ -190,8 +190,7 @@ levels(data$Functional) = c(levels(data$Functional), "None")
 data$Functional[is.na(data$Functional)] = "None"
 
 # GarageCars: Size of garage in car capacity
-levels(data$GarageCars) = c(levels(data$GarageCars), "None")
-data$GarageCars[is.na(data$GarageCars)] = "None"
+data$GarageCars[is.na(data$GarageCars)] = 0
 
 # GarageArea: Size of garage in square feet
 levels(data$GarageArea) = c(levels(data$GarageArea), "None")
@@ -252,14 +251,11 @@ data$GarageType[is.na(data$GarageType)] = "None"
 
 # GarageYrBlt: Year garage was built
 # Either set arbitrarily to 0 or set as a factor.
-# Setting as a factor is okay if we can order it later.
 # For now set to 0.
 
 # Also, I noticed that there's a year for "2207". This is probably "2007".
 data$GarageYrBlt[data$GarageYrBlt==2207] = 2007
-data$GarageYrBlt = factor(data$GarageYrBlt,levels=1890:2010)
-# Set this value to a value lower than the other data points (temporary)
-data$GarageYrBlt[is.na(data$GarageYrBlt)] = 1890
+data$GarageYrBlt[is.na(data$GarageYrBlt)] = 0
 
 # GarageFinish: Interior finish of the garage
 levels(data$GarageFinish) = c(levels(data$GarageFinish), "None")
@@ -329,7 +325,7 @@ set.2 = list(ranks.2,ord.2)
 # (3) Remaining, where the factor levels are already ordered
 
 ranks.3 = "ordered"
-ord.3 = c("Utilities","LandSlope","CentralAir","PavedDrive","GarageYrBlt")
+ord.3 = c("Utilities","LandSlope","CentralAir","PavedDrive")
 set.3 = list(ranks.3,ord.3)
 
 toorder = list(set.1,set.2,set.3)
@@ -424,18 +420,3 @@ write.csv(train.Y, file="train_Y.csv", row.names=FALSE)
 write.csv(test.out, file="test_X.csv", row.names=FALSE)
 
 # Remember the sale price is log transformed!
-
-##########
-# Step 8 #
-##########
-# EXPERIMENTAL! Let's not try this until a bit later.
-
-
-# Try dummy variables for columns where this is no particular order
-# for the categorical variables
-
-# Go through all of the variables and remove the ones where we already
-# refactored them
-# name.1 = names(Filter(is.factor, train.new))
-# dum.1 = dummy.data.frame(train.new, names=name.1)
-# write.csv(dum.1, file="train_cleaned_dummy.csv", row.names=FALSE)
