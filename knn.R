@@ -157,12 +157,6 @@ return(out)
 }
 
 
-tempcov = cov(sub.train[,-1])
-tempcov
-
-knn(5,sub.train,sub.test,"mahalanobis",tempcov)
-
-
 ###
 # First attempt: 5-NN Minkowski 2 (Euclidean Distance)
 ###
