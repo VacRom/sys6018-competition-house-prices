@@ -1,11 +1,19 @@
-wd = "F:/2018 Fall/SYS 6018/assignments/kaggle/02_Housing/"
+# Implementation of kNN
+
+##########
+# Step 1 #
+##########
+# Make sure to run explore_new.R first!!!
+# Make sure to run explore_new.R first!!!
+# Make sure to run explore_new.R first!!!
+
+wd = "F:/2018 Fall/SYS 6018, Data Mining/assignments/kaggle/02_Housing/"
 setwd(paste(wd,"sys6018-competition-house-prices/cleaned_data",sep=""))
 
 # install.packages("caret")
 library(caret)
 
-# Make sure to run explore.R first!
-temp = data
+temp = rbind(train.out,test.out)
 Y = train.Y
 
 # Remove all of the categorical variables
@@ -14,8 +22,8 @@ temp = temp[!sapply(temp, is.factor)]
 # Standardize the data 
 X.standard = as.data.frame(scale(temp))
 
-train.standard = X.standard[1:1460,]
-test.standard = X.standard[1461:2919,]
+train.standard = X.standard[1:cutoff,]
+test.standard = X.standard[(cutoff+1):dim(X.standard)[1],]
 
 # Plot histograms
 par(mfrow=c(3,4))
@@ -39,9 +47,8 @@ plot(cumsum(prop.variances), xlab="PC", ylab="Cumulative Prop. of Var.", type="b
 abline(h=0.80)
 
 # This is not good, we can't get enough information with only a handful of variables.
-
 summary(PCA)
-subset = PCA$x[,1:17] # Cumulative 80%
+subset = PCA$x[,1:16] # Cumulative 80%
 
 # Plot principal components
 biplot(PCA, scale=0)
@@ -52,27 +59,37 @@ biplot(PCA, scale=0)
 
 all=cbind(Y,train.out)
 
-# Some variables to consider
-all.subset=all[,c("SalePrice","OverallQual","GarageArea","YearBuilt","GrLivArea","TotRmsAbvGrd")]
+# Based on the biplot, here are some variables to consider
+all.subset=all[,c("SalePrice","TotalSF","YearBuilt","GrLivArea","TotRmsAbvGrd","GarageCars","BsmtFinSF1")]
 cor(all.subset)
 
 # If I have to reduce to only 3 predictors
-some.subset=all[,c("SalePrice","OverallQual","GarageArea","GrLivArea")]
+some.subset=all[,c("SalePrice","TotalSF","GarageCars","TotRmsAbvGrd")]
 cor(some.subset)
 
 # Try searching by correlation?
-subset = cbind(train.Y,train.standard)
+subset = cbind(train.standard,Y)
 corr=cor(subset)
-# Check for correlations at least at .6
-index=findCorrelation(corr, cutoff=0.6)
+# Check for correlations at least at .75
+index=findCorrelation(corr, cutoff=0.75)
 names(subset)[index]
 cor(subset[index])
+# And we get "GrLivArea", "X1stFlrSF", "GarageCars".
+
 # The best features to use are those which are most correlated with
 # SalePrice and least correlated with the other variables
 # In this case it seems that the best predictors would be
-# OverallQual, X1stFlrSF, and GarageCars
-index = c("SalePrice","OverallQual","X1stFlrSF","GarageCars")
+# from either one of the two lists above.
+index = c("SalePrice","TotalSF","GarageCars","TotRmsAbvGrd","GrLivArea","X1stFlrSF")
 cor(subset[index])
+
+# Let's try out the simpler model:
+index.1 = c("SalePrice","TotalSF","GarageCars")
+
+# Temporary matricies with the data
+sub.train = as.matrix(subset[index.1])
+sub.test = as.matrix(test.standard[index.1[-1]])
+Y = as.matrix(Y)
 
 ### Functions for KNN
 
@@ -136,11 +153,6 @@ avg_neighbor = function(list, k, Y) {
   return(out)
 }
 
-# Temporary matricies with the data
-sub.train = as.matrix(subset[index])
-sub.test = as.matrix(test.standard[index[-1]])
-Y = as.matrix(Y)
-
 # Knn function
 
 knn = function(k,train,test,func,param) {
@@ -156,66 +168,29 @@ knn = function(k,train,test,func,param) {
 return(out)
 }
 
+make_knn = function(k=5, train, test, func, param, file) {
+  output=knn(k,train,test,func,param)
+  out=as.data.frame(output)
+  out=data.frame(names=row.names(out),out)
+  names(out) = c("Id","SalePrice")
+  out$SalePrice = ((out$SalePrice*lam)+1)**(1/lam)
+  setwd(paste(wd,"sys6018-competition-house-prices/final_submission_results",sep=""))
+  write.csv(out, file=file, row.names=FALSE)
+  setwd(paste(wd,"sys6018-competition-house-prices/cleaned_data",sep=""))
+}
 
 ###
-# First attempt: 5-NN Minkowski 2 (Euclidean Distance)
+# First attempt: 5-NN Minkowski 2 (Euclidean Distance) on model 1
 ###
 
-output=knn(5,sub.train,sub.test,"minkowski",2)
-out=as.data.frame(output)
-out=data.frame(names=row.names(out),out)
-names(out) = c("Id","SalePrice")
-out$SalePrice = exp(out$SalePrice)
-
-setwd(paste(wd,"sys6018-competition-house-prices/final_submission_results",sep=""))
-write.csv(out, file="first_knn.csv", row.names=FALSE)
-setwd(paste(wd,"sys6018-competition-house-prices/cleaned_data",sep=""))
+make_knn(5,sub.train,sub.test,"minkowski",2,"new_knn_1.csv")
 
 ###
-# Second attempt: 15-NN Minkowski 2 (Euclidean Distance)
+# Second attempt: 5-NN Mahalanobis
 ###
 
-output=knn(15,sub.train,sub.test,"minkowski",2)
-out=as.data.frame(output)
-out=data.frame(names=row.names(out),out)
-names(out) = c("Id","SalePrice")
-out$SalePrice = exp(out$SalePrice)
-
-setwd(paste(wd,"sys6018-competition-house-prices/final_submission_results",sep=""))
-write.csv(out, file="second_knn.csv", row.names=FALSE)
-setwd(paste(wd,"sys6018-competition-house-prices/cleaned_data",sep=""))
-
-###
-# Third attempt: 5-NN Minkowski 5
-###
-
-output=knn(5,sub.train,sub.test,"minkowski",5)
-out=as.data.frame(output)
-out=data.frame(names=row.names(out),out)
-names(out) = c("Id","SalePrice")
-out$SalePrice = exp(out$SalePrice)
-
-setwd(paste(wd,"sys6018-competition-house-prices/final_submission_results",sep=""))
-write.csv(out, file="third_knn.csv", row.names=FALSE)
-setwd(paste(wd,"sys6018-competition-house-prices/cleaned_data",sep=""))
+make_knn(5,sub.train,sub.test,"mahalanobis",cov(sub.train),"new_knn_2.csv")
 
 # So all of these models are pretty bad right now. We probably need a better
 # selection of predictors, or maybe k-NN just can't capture all of the variance
 # with such a few number of predictors (curse of dimensionality)
-
-###
-# Fourth attempt: 5-NN Mahalanobis
-###
-
-tempcov = cov(sub.train[,-1])
-
-output=knn(5,sub.train,sub.test,"mahalanobis",tempcov)
-out=as.data.frame(output)
-out=data.frame(names=row.names(out),out)
-names(out) = c("Id","SalePrice")
-out$SalePrice = exp(out$SalePrice)
-
-setwd(paste(wd,"sys6018-competition-house-prices/final_submission_results",sep=""))
-write.csv(out, file="fourth_knn.csv", row.names=FALSE)
-setwd(paste(wd,"sys6018-competition-house-prices/cleaned_data",sep=""))
-
