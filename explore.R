@@ -425,6 +425,17 @@ training = cbind(train.X,train.Y)
 dim(training)
 dim(test.X)
 
+############
+# Step 8.5 #
+############
+# Make a secondary data-set where categorical variables aren't one-hot encoded
+names.1 = names(Filter(is.factor, data.int))
+names.2 = names(Filter(is.ordered, data.int))
+# These are the unordered categorical factors
+names   = names.1[!names.1 %in% names.2]
+names
+dummy.2 = dummy.data.frame(data.int, names=names)
+
 ##########
 # Step 9 #
 ##########
@@ -439,6 +450,15 @@ test.out = test.X
 write.csv(train.out, file="train_X.csv", row.names=FALSE)
 write.csv(train.Y, file="train_Y.csv", row.names=FALSE)
 write.csv(test.out, file="test_X.csv", row.names=FALSE)
+
+############
+# Step 9.5 #
+############
+# Reapeat for dummy.2
+train.out.2=dummy.2[1:cutoff,]
+test.out.2=dummy.2[(cutoff+1):2916,]
+write.csv(train.out.2, file="train_X_2.csv", row.names=FALSE)
+write.csv(test.out.2, file="test_X_2.csv", row.names=FALSE)
 
 ###########
 # Step 10 #
@@ -494,8 +514,44 @@ plot(results,type=c("g","o"))
 # [9] "TotalBsmtSF"          "GarageArea"           "X1stFlrSF"            "TotalSFMisc"         
 # [13] "LotFrontage"          "GarageCars"           "BsmtUnfSF"            "Fireplaces"          
 
-# Final check for missing values
-miss = sapply(training, function(x) length(which(is.na(x))))
-miss[miss.2>0]
-miss = sapply(test.out, function(x) length(which(is.na(x))))
-miss[miss.2>0]
+#############
+# Step 10.5 #
+#############
+# Repeat for dummy.2
+set.seed(4.699)
+
+clst=makeCluster(detectCores(),type="PSOCK")
+registerDoParallel(clst)
+
+control=rfeControl(functions=rfFuncs, method="cv", number=5) # Method: Cross Validation, Number: Number of Folds
+size=c(2**(1:8))
+
+results=rfe(train.out.2,train.Y[[1]],sizes=size,rfeControl=control)
+print(results)
+predictors(results)
+plot(results,type=c("g","o"))
+
+# Recursive feature selection
+# 
+# Outer resampling method: Cross-Validated (5 fold) 
+# 
+# Resampling performance over subset size:
+#   
+#   Variables  RMSE Rsquared    MAE  RMSESD RsquaredSD   MAESD Selected
+#           2 0.168    0.824 0.1222 0.01161     0.0231 0.00669         
+#           4 0.160    0.841 0.1144 0.01125     0.0224 0.00385         
+#           8 0.139    0.882 0.0952 0.01094     0.0188 0.00464         
+#          16 0.136    0.886 0.0928 0.00985     0.0154 0.00288         
+#          32 0.131    0.895 0.0893 0.00841     0.0128 0.00273         
+#          64 0.131    0.896 0.0886 0.00876     0.0130 0.00367         
+#         128 0.130    0.897 0.0880 0.00759     0.0110 0.00277         
+#         256 0.130    0.897 0.0883 0.00834     0.0122 0.00269        *
+#         354 0.131    0.896 0.0890 0.00823     0.0120 0.00276         
+# 
+# The top 5 variables (out of 256):
+#   TotalSF, OverallQual, GrLivArea, LotArea, BsmtFinSF1
+# 
+# [1] "TotalSF"              "OverallQual"          "GrLivArea"            "LotArea"             
+# [5] "BsmtFinSF1"           "OverallCond"          "YearBuilt"            "TotalBsmtSF"         
+# [9] "X2ndFlrSF"            "YearRemodAdd"         "X1stFlrSF"            "ExterQual"           
+# [13] "GarageArea"           "BsmtFinType1"         "KitchenQual"          "LotFrontage" 
