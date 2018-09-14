@@ -8,16 +8,19 @@
 #####################################################################
 # If you don't have these packages, uncomment and run these lines.  #
 #####################################################################
-# install.packages("mvoutlier")
-# install.packages("dummies")
-
+install.packages(c("mvoutlier","dummies","e1071","randomForest","mlbench","caret","mvoutlier","dummies","doParallel"))
+library(e1071)
+library(randomForest)
+library(mlbench)
+library(caret)
 library(mvoutlier)
 library(dummies)
+library(doParallel)
 
 ##############################
 # Set your working directory #
 ##############################
-wd = "F:/2018 Fall/SYS 6018/assignments/kaggle/02_Housing/"
+wd = "F:/2018 Fall/SYS 6018, Data Mining/assignments/kaggle/02_Housing/"
 setwd(paste(wd,"sys6018-competition-house-prices/original_files",sep=""))
 
 # This is the descriptions of the data in a text format.
@@ -35,16 +38,22 @@ head(test)
 ##########
 # Basic data cleaning
 
-# Separate the SalesPrice from the rest of the data. It's not a predictor
+# Separate the SalesPrice from the rest of the data. It's not a predictor.
 train.Y = train$SalePrice
 train$SalePrice = NULL
+
+# Combine the test and train data by rows so we can perform operations
+# on the entire data set at the same time.
+data = rbind(train, test)
+# The cutoff index between train and test
+cutoff = dim(train)[1]
 
 # Apply the temporary function across the data.
 # This function takes each column and checks to see if there are any missing
 # values in the column. Then it counts the number of indexes where there
 # were missing values found. In other words, it outputs the number of missing values
 # in each of the columns.
-miss = sapply(train, function(x) length(which(is.na(x))))
+miss = sapply(data, function(x) length(which(is.na(x))))
 
 # Outputs a table which shows how many values are missing for each column.
 miss.df = data.frame(miss[miss>0])
@@ -52,82 +61,89 @@ names(miss.df) = "number_of_missing_values"
 miss.df
 
 # Total number of entries
-n = dim(train)[1]
+n = dim(data)[1]
 
 # Check as a percentage of missing values
 miss.df.p = 100*miss.df/n
 miss.df.p
 
-#              number_of_missing_values
-# LotFrontage               17.73972603
-# Alley                     93.76712329
-# MasVnrType                 0.54794521
-# MasVnrArea                 0.54794521
-# BsmtQual                   2.53424658
-# BsmtCond                   2.53424658
-# BsmtExposure               2.60273973
-# BsmtFinType1               2.53424658
-# BsmtFinType2               2.60273973
-# Electrical                 0.06849315
-# FireplaceQu               47.26027397
-# GarageType                 5.54794521
-# GarageYrBlt                5.54794521
-# GarageFinish               5.54794521
-# GarageQual                 5.54794521
-# GarageCond                 5.54794521
-# PoolQC                    99.52054795
-# Fence                     80.75342466
-# MiscFeature               96.30136986
+# number_of_missing_values
+# MSZoning                   0.13703323
+# LotFrontage               16.64953751
+# Alley                     93.21685509
+# Utilities                  0.06851662
+# Exterior1st                0.03425831
+# Exterior2nd                0.03425831
+# MasVnrType                 0.82219938
+# MasVnrArea                 0.78794108
+# BsmtQual                   2.77492292
+# BsmtCond                   2.80918123
+# BsmtExposure               2.80918123
+# BsmtFinType1               2.70640630
+# BsmtFinSF1                 0.03425831
+# BsmtFinType2               2.74066461
+# BsmtFinSF2                 0.03425831
+# BsmtUnfSF                  0.03425831
+# TotalBsmtSF                0.03425831
+# Electrical                 0.03425831
+# BsmtFullBath               0.06851662
+# BsmtHalfBath               0.06851662
+# KitchenQual                0.03425831
+# Functional                 0.06851662
+# FireplaceQu               48.64679685
+# GarageType                 5.37855430
+# GarageYrBlt                5.44707091
+# GarageFinish               5.44707091
+# GarageCars                 0.03425831
+# GarageArea                 0.03425831
+# GarageQual                 5.44707091
+# GarageCond                 5.44707091
+# PoolQC                    99.65741692
+# Fence                     80.43850634
+# MiscFeature               96.40287770
+# SaleType                   0.03425831
 
-# Repeat for the test data.
-miss.t = sapply(test, function(x) length(which(is.na(x))))
-data.frame(miss.t[miss.t>0])/dim(test)[1]
-
-# MSZoning            0.002741604
-# LotFrontage         0.155586018
-# Alley               0.926662097
-# Utilities           0.001370802
-# Exterior1st         0.000685401
-# Exterior2nd         0.000685401
-# MasVnrType          0.010966415
-# MasVnrArea          0.010281014
-# BsmtQual            0.030157642
-# BsmtCond            0.030843043
-# BsmtExposure        0.030157642
-# BsmtFinType1        0.028786840
-# BsmtFinSF1          0.000685401
-# BsmtFinType2        0.028786840
-# BsmtFinSF2          0.000685401
-# BsmtUnfSF           0.000685401
-# TotalBsmtSF         0.000685401
-# BsmtFullBath        0.001370802
-# BsmtHalfBath        0.001370802
-# KitchenQual         0.000685401
-# Functional          0.001370802
-# FireplaceQu         0.500342700
-# GarageType          0.052090473
-# GarageYrBlt         0.053461275
-# GarageFinish        0.053461275
-# GarageCars          0.000685401
-# GarageArea          0.000685401
-# GarageQual          0.053461275
-# GarageCond          0.053461275
-# PoolQC              0.997943797
-# Fence               0.801233722
-# MiscFeature         0.965044551
-# SaleType            0.000685401
-
-# There are different kinds of missing data for each of the data sets.
-# This will make it very difficult to interpolate or fix missing data points.
-# Instead let's try combining the data and fixing the missing data points as
-# a whole instead, then reseparating them by ID (?)
-
-data = rbind(train, test)
+# ID isn't a predictor
 data$Id = NULL
-head(data)
+dim(data)
+# [1] 2919 79
 
 ##########
 # Step 3 #
+##########
+# Outliers
+
+# Make some general plot
+par(mfrow=c(2,2))
+for (name in names(train)) {plot(train[[name]],train.Y,main=name)}
+
+# Just based on initial observation we see that the most significant outlier
+# is two points away from the large cluster in GrLivArea.
+# Thehre is also one point in LotFrontage
+outlier.1=train[(train$GrLivArea[1:cutoff]>4000) & (train.Y<300000),]
+outlier.2=train[(train$LotFrontage[1:cutoff]>300),]
+outlier.1=rownames(outlier.1)
+outlier.2=rownames(outlier.2[!is.na(outlier.2$LotFrontage),]) # Since there are NA values we need to clean it up
+outlier=c(outlier.1,outlier.2)
+outlier=unique(outlier)
+
+# Let's remove these points and see what happens
+temp=cbind(train,train.Y)
+temp=temp[which(!rownames(temp) %in% outlier),]
+cutoff=dim(temp)[1]
+
+# Replot!
+par(mfrow=c(2,2))
+for (name in names(temp)) {plot(temp[[name]],temp$train.Y,main=name)}
+
+# Merge testing and training predictors again so we can perform imputation
+# Save the values of Y as train.Y
+train.Y=temp$train.Y
+temp$train.Y = NULL
+all.X = rbind(temp,test)
+
+##########
+# Step 4 #
 ##########
 # Filling in missing values and adding factor levels.
 
@@ -145,169 +161,98 @@ head(data)
 # (i.e. Red, Green, Blue). For these we can use one-hot encoding by using
 # dummy variables to represent each of the different levels.
 
-# MSZoning: Identifies the general zoning classification of the sale.
-# Insert mode
-summary(data$MSZoning)
-data$MSZoning[is.na(data$MSZoning)] = "RL"
+# For lot frontage... There is a strong linear relationship between
+# LotArea and LotFrontage. We can impute using LotArea
+par(mfrow=c(2,2))
+for (name in names(all.X)) {plot(all.X[[name]],all.X$LotFrontage,main=name)}
 
-# Utilities: Type of utilities available
-# Insert mode
-summary(data$Utilities)
-data$Utilities[is.na(data$Utilities)] = "AllPub"
+# Experimenetal imputation #
 
-# Exterior1st: Exterior covering on house
-levels(data$Exterior1st) = c(levels(data$Exterior1st), "None")
-data$Exterior1st[is.na(data$Exterior1st)] = "None"
+# Regress but remove noisy points to make it more linear
+plot(all.X$LotArea,all.X$LotFrontage)
+temp.X = all.X[(all.X$LotArea<30000) & (all.X$LotFrontage<150),]
+plot(temp.X$LotArea,temp.X$LotFrontage)
 
-# Exterior2nd: Exterior covering on house (if more than one material)
-levels(data$Exterior2nd) = c(levels(data$Exterior2nd), "None")
-data$Exterior2nd[is.na(data$Exterior2nd)] = "None"
+regress = lm(LotFrontage~LotArea, data=temp.X)
+all.X$LotFrontage[is.na(all.X$LotFrontage)]=regress$coefficients[1]+all.X$LotArea[is.na(all.X$LotFrontage)]*regress$coefficients[2]
+hist(all.X$LotFrontage)
+# Does this look reasonable? Yes!
+plot(all.X$LotFrontage,all.X$LotArea)
+plot(all.X$LotFrontage,all.X$train.Y)
 
-# BsmtFinSF1: Type 1 finished square feet
-data$BsmtFinSF1[is.na(data$BsmtFinSF1)] = 0
+# Impute by other means
 
-# BsmtFinSF2: Type 2 finished square feet
-data$BsmtFinSF2[is.na(data$BsmtFinSF2)] = 0
+# First, I noticed that there's a year for "2207". This is probably "2007".
+# For the data where homes have no garage, set to 0.
+all.X$GarageYrBlt[all.X$GarageYrBlt==2207] = 2007
+all.X$GarageYrBlt[is.na(all.X$GarageYrBlt)] = "None"
 
-# BsmtUnfSF: Unfinished square feet of basement area
-data$BsmtUnfSF[is.na(data$BsmtUnfSF)] = 0
+# NA -> Mode Value
+list.mode=c("MSZoning","Utilities","Electrical","Functional","KitchenQual",
+            "Exterior1st","Exterior2nd")
+for (name in list.mode) {
+  sum = summary(all.X[[name]])
+  mode = names(which.max(sum))
+  all.X[[name]][is.na(all.X[[name]])] = mode
+}
 
-# TotalBsmtSF: Total square feet of basement area
-data$TotalBsmtSF[is.na(data$TotalBsmtSF)] = 0
+# NA -> None
+list.none = c("Alley",
+              "MasVnrType","BsmtQual","BsmtExposure","BsmtCond","BsmtFinType1",
+              "BsmtFinType2","FireplaceQu","GarageType","GarageFinish",
+              "GarageQual","GarageCond","PoolQC","Fence","MiscFeature")
+for (name in list.none) {
+  levels(all.X[[name]]) = c(levels(all.X[[name]]), "None")
+  all.X[[name]][is.na(all.X[[name]])] = "None"
+}
 
-# BsmtFullBath: Basement full bathrooms
-data$BsmtFullBath[is.na(data$BsmtFullBath)] = 0
+# NA -> 0
+list.zero = c("BsmtFinSF1","BsmtFinSF2","BsmtUnfSF","TotalBsmtSF","BsmtFullBath",
+              "BsmtHalfBath","GarageCars","GarageArea","MasVnrArea")
+for (name in list.zero) {
+  all.X[[name]][is.na(all.X[[name]])] = 0
+}
 
-# BsmtHalfBath: Basement half bathrooms
-data$BsmtHalfBath[is.na(data$BsmtHalfBath)] = 0
+# NA -> special case
+all.X$SaleType[is.na(all.X$SaleType)] = "Oth"
 
-# KitchenQual: Kitchen quality
-levels(data$KitchenQual) = c(levels(data$KitchenQual), "None")
-data$KitchenQual[is.na(data$KitchenQual)] = "None"
-
-# Functional: Home functionality (Assume typical unless deductions are warranted)
-levels(data$Functional) = c(levels(data$Functional), "None")
-data$Functional[is.na(data$Functional)] = "None"
-
-# GarageCars: Size of garage in car capacity
-data$GarageCars[is.na(data$GarageCars)] = 0
-
-# GarageArea: Size of garage in square feet
-data$GarageArea[is.na(data$GarageArea)] = 0
-
-# SaleType: Type of sale
-data$SaleType[is.na(data$SaleType)] = "Oth"
-
-# LotFrontage: Linear feet of street connected to property
-# Using NA=0 will probably skew the data points to the left too much.
-data$LotFrontage[is.na(data$LotFrontage)] = median(data$LotFrontage[!is.na(data$LotFrontage)])
-
-# Alley: Type of alley access to property
-# Factor NA as a third variable, it's not actually missing data
-# Set this as "None"
-levels(data$Alley) = c(levels(data$Alley), "None")
-data$Alley[is.na(data$Alley)] = "None"
-
-# MasVnrType: Masonry veneer type
-# Again NA probably means none.
-data$MasVnrType[is.na(data$MasVnrType)] = "None"
-
-# MasVnrArea: Masonry veneer area in square feet
-data$MasVnrArea[is.na(data$MasVnrArea)] = 0
-
-# BsmtQual: Evaluates the height of the basement
-levels(data$BsmtQual) = c(levels(data$BsmtQual), "None")
-data$BsmtQual[is.na(data$BsmtQual)] = "None"
-
-# BsmtExposure: Refers to walkout or garden level walls
-levels(data$BsmtExposure) = c(levels(data$BsmtExposure), "None")
-data$BsmtExposure[is.na(data$BsmtExposure)] = "None"
-
-# BsmtCond: Evaluates the general condition of the basement
-levels(data$BsmtCond) = c(levels(data$BsmtCond), "None")
-data$BsmtCond[is.na(data$BsmtCond)] = "None"
-
-# BsmtFinType1: Rating of basement finished area
-levels(data$BsmtFinType1) = c(levels(data$BsmtFinType1), "None")
-data$BsmtFinType1[is.na(data$BsmtFinType1)] = "None"
-
-# BsmtFinType2: Rating of basement finished area (if multiple types)
-levels(data$BsmtFinType2) = c(levels(data$BsmtFinType2), "None")
-data$BsmtFinType2[is.na(data$BsmtFinType2)] = "None"
-
-# Electrical: Electrical system
-# Replace with the mode since we can't calculate an 'average'
-summary(data$Electrical[!is.na(data$Electrical)])
-data$Electrical[is.na(data$Electrical)] = "SBrkr"
-
-# FireplaceQu: Fireplace quality
-levels(data$FireplaceQu) = c(levels(data$FireplaceQu), "None")
-data$FireplaceQu[is.na(data$FireplaceQu)] = "None"
-
-# GarageType: Garage location
-levels(data$GarageType) = c(levels(data$GarageType), "None")
-data$GarageType[is.na(data$GarageType)] = "None"
-
-# GarageYrBlt: Year garage was built
-# Either set arbitrarily to 0 or set as a factor.
-# For now set to 0.
-
-# Also, I noticed that there's a year for "2207". This is probably "2007".
-data$GarageYrBlt[data$GarageYrBlt==2207] = 2007
-data$GarageYrBlt[is.na(data$GarageYrBlt)] = 0
-
-# GarageFinish: Interior finish of the garage
-levels(data$GarageFinish) = c(levels(data$GarageFinish), "None")
-data$GarageFinish[is.na(data$GarageFinish)] = "None"
-
-# GarageQual: Garage quality
-levels(data$GarageQual) = c(levels(data$GarageQual), "None")
-data$GarageQual[is.na(data$GarageQual)] = "None"
-
-# GarageCond: Garage condition
-levels(data$GarageCond) = c(levels(data$GarageCond), "None")
-data$GarageCond[is.na(data$GarageCond)] = "None"
-
-# PoolQC: Pool quality
-levels(data$PoolQC) = c(levels(data$PoolQC), "None")
-data$PoolQC[is.na(data$PoolQC)] = "None"
-
-# Fence: Fence quality
-levels(data$Fence) = c(levels(data$Fence), "None")
-data$Fence[is.na(data$Fence)] = "None"
-
-# MiscFeature: Miscellaneous feature not covered in other categories
-levels(data$MiscFeature) = c(levels(data$MiscFeature), "None")
-data$MiscFeature[is.na(data$MiscFeature)] = "None"
-
-miss.2 = sapply(data, function(x) length(which(is.na(x))))
+# Check the number of missing elements in each column
+miss.2 = sapply(all.X, function(x) length(which(is.na(x))))
 miss.2[miss.2>0]
 
 # Now we check for levels, because some entries may not have been assumed
 # to be factors. For example the first case with MSSubClass the diferent
 # numbers actually correspond to different classes. We have to manually set
 # these as levels instead.
-lv = sapply(data, function(x) levels(x))
-data$MSSubClass = factor(data$MSSubClass)
+numeric = sapply(all.X, function(x) length(which(is.numeric(x))))
+numeric[numeric>0]
+
+# Now which of these values are actually factors?
+list.fact = c("MSSubClass","GarageYrBlt","YrSold","MoSold","GarageYrBlt")
+for (name in list.fact) {
+  all.X[[name]] = factor(all.X[[name]])
+  # Apply to test data
+  test[[name]] = factor(test[[name]])
+}
 
 ##########
-# Step 4 #
+# Step 5 #
 ##########
 # Organize and order the factors in a logical way.
 
-# Also we should try to make factors into ordered categorical variables.
+# Also we should try to make factors into ordered (ordinal) categorical variables.
 # they make sense. (i.e. Low, Medium, High become 1, 2, and 3).
 # TO COMPLETELY AUTOMATE THIS WE COULD SORT BY MEDIAN BUT THERE ARE CIRCUMSTANCES
 # WHERE DUE TO INCOMPLETE DATA THAT WE COULD ACCIDENTALLY ORDER IT IN THE WRONG WAY
 
 # (1) Special cases, where the factor levels are unique.
 
-data$LotShape=ordered(data$LotShape,levels=c("Reg","IR1","IR2","IR3"))
-data$BsmtExposure=ordered(data$BsmtExposure,levels=c("None","No","Mn","Av","Gd"))
-data$Electrical=ordered(data$Electrical,levels=c("Mix","FuseP","FuseF","FuseA","SBrkr"))
-data$Functional=ordered(data$Functional,levels=c("None","Sal","Sev","Maj2","Maj1","Mod","Min2","Min1","Typ"))
-data$GarageFinish=ordered(data$GarageFinish,levels=c("None","Unf","RFn","Fin"))
-data$Fence=ordered(data$Fence,levels=c("None","MnWw","GdWo","MnPrv","GdPrv"))
+all.X$LotShape=ordered(all.X$LotShape,levels=c("Reg","IR1","IR2","IR3"))
+all.X$BsmtExposure=ordered(all.X$BsmtExposure,levels=c("None","No","Mn","Av","Gd"))
+all.X$Electrical=ordered(all.X$Electrical,levels=c("Mix","FuseP","FuseF","FuseA","SBrkr"))
+all.X$Functional=ordered(all.X$Functional,levels=c("None","Sal","Sev","Maj2","Maj1","Mod","Min2","Min1","Typ"))
+all.X$GarageFinish=ordered(all.X$GarageFinish,levels=c("None","Unf","RFn","Fin"))
+all.X$Fence=ordered(all.X$Fence,levels=c("None","MnWw","GdWo","MnPrv","GdPrv"))
 
 # (2) Naming schemes, where the factor levels use a common naming scheme
 
@@ -324,7 +269,7 @@ set.2 = list(ranks.2,ord.2)
 # (3) Remaining, where the factor levels are already ordered
 
 ranks.3 = "ordered"
-ord.3 = c("Utilities","LandSlope","CentralAir","PavedDrive")
+ord.3 = c("Utilities","LandSlope","CentralAir","PavedDrive","OverallCond","OverallQual")
 set.3 = list(ranks.3,ord.3)
 
 toorder = list(set.1,set.2,set.3)
@@ -334,28 +279,30 @@ toorder = list(set.1,set.2,set.3)
 for (set in toorder) {
   if (set[[1]][1] == "ordered") {
     for (ord in set[[2]]) {
-      data[[ord]] = ordered(data[[ord]])
+      all.X[[ord]] = ordered(all.X[[ord]])
+      # Apply to test data
+      test[[ord]] = ordered(test[[ord]])
     }
   } else {
     for (ord in set[[2]]) {
-      data[[ord]] = ordered(data[[ord]], levels=set[[1]])
+      all.X[[ord]] = ordered(all.X[[ord]], levels=set[[1]])
+      # Apply to test data
+      test[[ord]] = ordered(test[[ord]], levels=set[[1]])
     }
   }
 }
 
 ##########
-# Step 5 #
+# Step 6 #
 ##########
 # General analysis.
 
-# Now let's check which values are missing
-miss.2 = sapply(data, function(x) length(which(is.na(x))))
-miss.2[miss.2>0]
+# Reconfigure the data
+data=all.X
 
-# Make lots of plots
+# Make lots of plots for each of the variables vs SalePrice
 par(mfrow=c(2,2))
-for (i in names(data)) {plot(data[[i]][1:1460],train.Y,xlab=i)}
-par(mfrow=c(1,1))
+for (i in names(data)) {plot(data[[i]][1:cutoff],train.Y,xlab=i)}
 
 # Comments:
 # For MSZoning, there are several outliers for the factor level RL.
@@ -367,55 +314,188 @@ par(mfrow=c(1,1))
 par(mfrow=c(2,1))
 hist(train.Y)
 hist(log(train.Y))
-par(mfrow=c(1,1))
-# Much more evenly distributed!
-train.Y = log(train.Y)
+
+# Skew is 1.88->0.12
+skewness(train.Y)
+skewness(log(train.Y))
+train.Y=log(train.Y)
 
 # Rerun plots
-par(mfrow=c(2,2))
-for (i in names(data)) {plot(data[[i]][1:1460],train.Y,xlab=i)}
+par(mfrow=c(4,4))
+for (i in names(data)) {plot(data[[i]][1:cutoff],train.Y,xlab=i)}
 par(mfrow=c(1,1))
+# The look a lot neater and centered.
 
-# Finally let's see how many categorical variables we have
-cat.count = 0
-total.count = 0
-for (i in names(data)){
-  total.count = total.count + 1
-  if (is.factor(data[[i]])){
-    cat.count = cat.count + 1
-    print(i)
-  }
+# Let's look at the skew of other predictors
+# Get the numerical columns
+names=names(Filter(is.numeric, data))
+skews=apply(data[names],2,skewness)
+skew.df=as.data.frame(skews)[order(-skews),,drop=FALSE]
+skew.df[abs(skew.df)>1,,drop=FALSE]
+
+#               skews
+# MiscVal       21.92
+# PoolArea      17.68
+# LotArea       13.13
+# LowQualFinSF  12.08
+# X3SsnPorch    11.36
+# LotFrontage    7.24
+# KitchenAbvGr   4.30
+# BsmtFinSF2     4.14
+# EnclosedPorch  4.00
+# ScreenPorch    3.94
+# BsmtHalfBath   3.93
+# MasVnrArea     2.62
+# OpenPorchSF    2.53
+# WoodDeckSF     1.84
+# X1stFlrSF      1.26
+# GrLivArea      1.07
+
+# Since there are many values of 0 in the data we can do a log(x+1) transform on
+# these variables where skew >0.5
+
+# Make a temporary data frame for the log transformed variables
+data.log = data
+# Let's transform only a select number of predictors.
+# I don't want to transform the others because (1) It doesnt make sense for
+# counting variables or (2) I can add SF values together later and would need
+# to transform all other SF values as well if one were changed
+names = c("LotArea","GrLivArea","LotFrontage")
+for (name in names) {
+  print(name)
+  data.log[[name]] = log(1+data[[name]])
+  # Repeat on the test data
+  test[[name]] = log(1+test[[name]])
 }
-cat.count   # 45
-total.count # 79
-
-##########
-# Step 6 #
-##########
-# Outliers
-
-# Outliers will be handled differently depending on each model used.
+par(mfrow=c(4,4))
+for (i in names(data.log)) {plot(data.log[[i]][1:cutoff],train.Y,xlab=i)}
+par(mfrow=c(1,1))
 
 ##########
 # Step 7 #
 ##########
-# Print data.
+# Generating relevant interacting variables
+data.int = data.log
 
-# The data is now cleaned up and ready to be used in analysis
-# Let's split the results into
+# Some variables can be combined with one another like TOTAL area of the house (excluding porches and things of that nature)
+
+# Total Area of House
+data.int$TotalSF=data.int$TotalBsmtSF+data.int$X1stFlrSF+data.int$X2ndFlrSF+data.int$GarageArea
+# Repeat for the test data.
+test$TotalSF=test$TotalBsmtSF+test$X1stFlrSF+test$X2ndFlrSF+test$GarageArea
+
+# Total Area of Porch+Deck+Pool
+data.int$TotalSFMisc=data.int$WoodDeckSF+data.int$OpenPorchSF+data.int$EnclosedPorch+data.int$X3SsnPorch+data.int$ScreenPorch+data.int$PoolArea
+test$TotalSFMisc=test$WoodDeckSF+test$OpenPorchSF+test$EnclosedPorch+test$X3SsnPorch+test$ScreenPorch+test$PoolArea
+
+##########
+# Step 8 #
+##########
+# Dummy (one-hot) encoding
+
+# Clean-up
 # (1) Training predictors called, "train_X.csv"
 # (2) Training results called, "train_Y.csv"
 # (3) Testing predictors called, "test_X.csv"
 
-train.out = data[1:1460,]
-test.out = data[1461:2919,]
+cutoff = dim(temp)[1]
 train.Y=as.data.frame(train.Y)
 names(train.Y) = "SalePrice"
 
+train.out = data.int
+# Drop ID
+train.out$Id = NULL
+test.out = test
+test.out$Id = NULL
+
+# This is a big distinction
+# Should we use ORDINAL categorical variables or ONE HOT ENCODING?
+# There is no clear answer but OHE is usually more robust
+# USE THIS FOR NOW BUT WE CAN REMOVE IT LATER IF ORDINAL IS BETTER
+
+names = names(Filter(is.factor, train.out))
+
+dummy = dummy.data.frame(train.out, names=names)
+dim(dummy)
+
+# Complete the dataset
+train.X = dummy[1:cutoff,]
+test.X = dummy[(cutoff+1):dim(dummy)[1],]
+training = cbind(train.X,train.Y)
+dim(training)
+dim(test.X)
+
+##########
+# Step 9 #
+##########
+# Print data.
+
 setwd(paste(wd,"sys6018-competition-house-prices/cleaned_data",sep=""))
+
+training$SalePrice = NULL
+train.out = training
+test.out = test.X
 
 write.csv(train.out, file="train_X.csv", row.names=FALSE)
 write.csv(train.Y, file="train_Y.csv", row.names=FALSE)
 write.csv(test.out, file="test_X.csv", row.names=FALSE)
 
-# Remember the sale price is log transformed!
+###########
+# Step 10 #
+###########
+# Feature selection
+
+# Recursive Feature Elimination
+# Run Random Forest Models over and over to determine which variables are
+# the best to use for the actual modeling process.
+set.seed(4.699)
+
+#####################################
+# WARNING THIS WILL EAT UP YOUR CPU #
+#####################################
+
+# Parallel computing
+clst=makeCluster(detectCores(),type="PSOCK")
+registerDoParallel(clst)
+
+#####
+
+# https://www.rdocumentation.org/packages/caret/versions/6.0-80/topics/rfeControl
+control=rfeControl(functions=rfFuncs, method="cv", number=5) # Method: Cross Validation, Number: Number of Folds
+size=c(2**(1:8))
+# https://www.rdocumentation.org/packages/caret/versions/6.0-80/topics/rfe
+results=rfe(train.out,train.Y[[1]],sizes=size,rfeControl=control) # Sizes: Number of features to retain.
+print(results)
+predictors(results)
+plot(results,type=c("g","o"))
+
+# Recursive feature selection
+# 
+# Outer resampling method: Cross-Validated (5 fold) 
+# 
+# Resampling performance over subset size:
+#   
+#   Variables  RMSE Rsquared    MAE  RMSESD RsquaredSD   MAESD Selected
+#           2 0.204    0.740 0.1473 0.01263    0.03462 0.01280         
+#           4 0.167    0.828 0.1159 0.00627    0.01095 0.00241         
+#           8 0.156    0.851 0.1078 0.00541    0.00829 0.00365         
+#          16 0.151    0.858 0.1047 0.00759    0.01295 0.00325         
+#          32 0.145    0.870 0.0992 0.00774    0.01307 0.00384         
+#          64 0.139    0.882 0.0947 0.00750    0.01214 0.00363         
+#         128 0.139    0.882 0.0941 0.00700    0.01123 0.00351         
+#         256 0.138    0.884 0.0939 0.00647    0.01001 0.00364        *
+#         452 0.139    0.884 0.0940 0.00638    0.00993 0.00349 
+# 
+# The top 5 variables (out of 256):
+#   TotalSF, GrLivArea, YearBuilt, LotArea, BsmtFinSF1
+# 
+# [1] "TotalSF"              "GrLivArea"            "YearBuilt"            "LotArea"             
+# [5] "BsmtFinSF1"           "YearRemodAdd"         "ExterQualTA"          "X2ndFlrSF"           
+# [9] "TotalBsmtSF"          "GarageArea"           "X1stFlrSF"            "TotalSFMisc"         
+# [13] "LotFrontage"          "GarageCars"           "BsmtUnfSF"            "Fireplaces"          
+
+# Final check for missing values
+miss = sapply(training, function(x) length(which(is.na(x))))
+miss[miss.2>0]
+miss = sapply(test.out, function(x) length(which(is.na(x))))
+miss[miss.2>0]

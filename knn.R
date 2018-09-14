@@ -10,7 +10,7 @@
 wd = "F:/2018 Fall/SYS 6018, Data Mining/assignments/kaggle/02_Housing/"
 setwd(paste(wd,"sys6018-competition-house-prices/cleaned_data",sep=""))
 
-# install.packages("caret")
+install.packages("caret")
 library(caret)
 
 temp = rbind(train.out,test.out)
@@ -33,7 +33,6 @@ for (i in names(train.standard)){
 par(mfrow=c(1,1))
 
 # PCA 
-# https://www.analyticsvidhya.com/blog/2016/03/practical-guide-principal-component-analysis-python/
 PCA = prcomp(train.standard, scale.=TRUE)
 variances = PCA$sdev**2
 prop.variances = variances/sum(variances)
