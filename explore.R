@@ -8,12 +8,11 @@
 #####################################################################
 # If you don't have these packages, uncomment and run these lines.  #
 #####################################################################
-install.packages(c("mvoutlier","dummies","e1071","randomForest","mlbench","caret","mvoutlier","dummies","doParallel"))
+install.packages(c("dummies","e1071","randomForest","mlbench","caret","mvoutlier","dummies","doParallel"))
 library(e1071)
 library(randomForest)
 library(mlbench)
 library(caret)
-library(mvoutlier)
 library(dummies)
 library(doParallel)
 
@@ -141,6 +140,7 @@ for (name in names(temp)) {plot(temp[[name]],temp$train.Y,main=name)}
 train.Y=temp$train.Y
 temp$train.Y = NULL
 all.X = rbind(temp,test)
+rownames(all.X) = NULL
 
 ##########
 # Step 4 #
@@ -459,6 +459,12 @@ train.out.2=dummy.2[1:cutoff,]
 test.out.2=dummy.2[(cutoff+1):2916,]
 write.csv(train.out.2, file="train_X_2.csv", row.names=FALSE)
 write.csv(test.out.2, file="test_X_2.csv", row.names=FALSE)
+
+############
+#
+# For the purposes of running the other R files you can stop here
+#
+############
 
 ###########
 # Step 10 #

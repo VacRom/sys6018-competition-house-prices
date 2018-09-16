@@ -1,23 +1,31 @@
-wd = "F:/2018 Fall/SYS 6018, Data Mining/assignments/kaggle/02_Housing/"
-setwd(paste(wd,"sys6018-competition-house-prices/cleaned_data",sep=""))
+# Linear Regression
 
-# install.packages(c("caret","fmsb","DAAG"))
-library(caret)
-library(fmsb)
-library(DAAG)
+##########
+#
+# For the purposes of running the other R files run Step 1 an Step 2.2
+#
+##########
 
 ##########
 # Step 1 #
 ##########
 # Run explore.R
 
+install.packages(c("caret","fmsb","DAAG"))
+library(caret)
+library(fmsb)
+library(DAAG)
+
+wd = "F:/2018 Fall/SYS 6018, Data Mining/assignments/kaggle/02_Housing/"
+setwd(paste(wd,"sys6018-competition-house-prices/cleaned_data",sep=""))
+
+training = cbind(train.out,train.Y)
+
 ##########
 # Step 2 #
 ##########
 # Predictor selection (full one hot encoded data)
 # We could use the variables selected through random forests or...
-
-training = cbind(train.out,train.Y)
 
 # Fit the model
 full = lm(SalePrice~., data=training)
@@ -101,7 +109,7 @@ VIF(mod.2)
 make_model(mod, "multiplelinearreg_04.csv")
 
 ############
-# Step 2.5 #
+# Step 2.2 #
 ############
 # Predictor selection (for partially one hot encoded data)
 
@@ -115,6 +123,12 @@ training$OverallCond = as.numeric(training$OverallCond)
 test.out.2$OverallCond = as.numeric(test.out.2$OverallCond)
 training$Functional = NULL
 test.out.2$Functional = NULL
+training$Id = NULL
+test.out.2$Id = NULL
+
+############
+# Step 2.5 #
+############
 
 full = lm(SalePrice~., data=training)
 null = lm(SalePrice~1, data=training)
@@ -173,14 +187,3 @@ bo.2$anova
 
 make_model_2(bo, "multiplelinearreg_06.csv")
 # Same score as before. I'm satisfied with this for now.
-
-
-
-
-
-
-
-
-
-
-
