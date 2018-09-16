@@ -367,3 +367,51 @@ scale.cvtest.sel=cv(scale.select, knn=c(3,4,5,6),j=c(0), func="mahalanobis",file
 plot_ly(x=scale.cvtest.sel$k,y=scale.cvtest.sel$Dimension,z=scale.cvtest.sel$`Mean RMSLE`)
 
 make_knn(4, scale.select, (as.data.frame(scale.test))[index], "mahalanobis", 0, "knn_grid_search_mahal.csv")
+
+##############
+# WARNING: EXPERIMENTAL 
+##############
+
+####
+# What if we tune a scaling function?
+####
+
+# Relative importance of different variables
+plot(import[,1]/colSums(import)[1])
+
+# Increasing the power generates a more parsimonious model
+plot(import[,1]**2/colSums(import)[1])
+
+# Reducing generates a more flexible model but can't do if importance is negative
+plot(import[,1]**(1/2)/colSums(import)[1])
+
+# Let's call this parameter alpha
+
+# This is testing with alpha = 2
+names = colnames(training)
+scale.X = scale(rbind(training,test.out.2))
+scale.X = scale.X %*% diag(import[,1]**2) ### THIS IS DIFFERENT
+colnames(scale.X) = names
+scale.train = scale.X[1:dim(training)[1],]
+scale.test = scale.X[(dim(training)[1]+1):dim(scale.X)[1],]
+scale.training.price = cbind(SalePrice,scale.train)
+
+# Run the same test as before to see what we get
+cvtest.scale=cv(scale.training.price,j=c(0.28,0.3,0.32), knn=c(7,8,9),k=5)
+plot_ly(x=cvtest.scale$k,y=cvtest.scale$Dimension,z=cvtest.scale$`Mean RMSLE`)
+# About 0.3, 8 results in a score of about 0.1445
+make_knn(8, scale.training.price, (as.data.frame(scale.test))[colnames(scale.select)[-1]],"minkowski",0.3,"knn_grid_search_scale_5.csv")
+
+# This is testing with alpha = 4
+names = colnames(training)
+scale.X = scale(rbind(training,test.out.2))
+scale.X = scale.X %*% diag(import[,1]**4) ### THIS IS DIFFERENT
+colnames(scale.X) = names
+scale.train = scale.X[1:dim(training)[1],]
+scale.test = scale.X[(dim(training)[1]+1):dim(scale.X)[1],]
+scale.training.price = cbind(SalePrice,scale.train)
+
+# Run the same test as before to see what we get
+cvtest.scale=cv(scale.training.price,j=c(0.11,0.12,0.13,0.14,0.15), knn=c(8),k=5)
+plot_ly(x=cvtest.scale$k,y=cvtest.scale$Dimension,z=cvtest.scale$`Mean RMSLE`)
+# About 0.155, 8 results in a score of about 0.148
