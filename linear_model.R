@@ -102,7 +102,6 @@ make_model(mod, "multiplelinearreg_03.csv")
 VIF(mod)
 
 # All of the above are seriously overfit. Let's try doing some analysis with only a few variables
-names=predictors(results)[1:20]
 mod.2=lm(SalePrice~TotalSF+GrLivArea+YearBuilt+LotArea+BsmtFinSF1+
            YearRemodAdd+ExterQualTA+X2ndFlrSF,data=training)
 VIF(mod.2)

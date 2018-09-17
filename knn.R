@@ -21,6 +21,11 @@ training.price = cbind(SalePrice,training)
 names(training.price)
 temp = rbind(training,test.out.2)
 
+# Here are shortcuts so you don't have to run the ML models over and over again
+results$var$var=read.csv("results_var_var.csv")
+colnames(results$var$var) = "var"
+forst$importance=read.csv("forst_importance.csv")
+
 ##########
 # Step 2 #
 ##########
@@ -78,6 +83,10 @@ import=forst$importance
 mse = import[order(-import[,1]),][,1]
 plot(1:dim(import)[1],mse)
 head(mse)
+
+# Write as csv - for future use!
+write.csv(results$var$var, file="results_var_var.csv", row.names=FALSE)
+write.csv(forst$importance, file="forst_importance.csv")
 
 ##########
 # Step 3 #
@@ -315,6 +324,8 @@ make_knn(6, select, test.out.2[colnames(select)[-1]], "mahalanobis", 0, "knn_gri
 # 9-NN Minkowski(0.7) on All Normalized and Scaled Predictors
 ####
 
+#### IF YOU WANT TO RUN ANY OF THE NORMALIZED TESTS RUN THIS BLOCK OF CODE ####
+
 # Let's try minkowski again but normalize the data first.
 names = colnames(training)
 scale.X = scale(rbind(training,test.out.2))
@@ -323,6 +334,9 @@ colnames(scale.X) = names
 scale.train = scale.X[1:dim(training)[1],]
 scale.test = scale.X[(dim(training)[1]+1):dim(scale.X)[1],]
 scale.training.price = cbind(SalePrice,scale.train)
+
+
+
 
 # Let's try a similar range from before
 cvtest.scale=cv(scale.training.price,j=c(0.20, 0.25, 0.30, 0.35, 0.40), knn=c(1,2,3,4,5),k=5)
@@ -339,7 +353,7 @@ make_knn(9, scale.training.price,scale.test,"minkowski",0.7,"knn_grid_search_sca
 ####
 
 # Finally the last one will be only select variables in the model
-index = results$var$var[1:16]
+index = results$var$var[1:16,]
 scale.select = as.data.frame(scale.training.price)[c("SalePrice",index)]
 scale.cvtest.sel=cv(scale.select)
 plot_ly(x=scale.cvtest.sel$k,y=scale.cvtest.sel$Dimension,z=scale.cvtest.sel$`Mean RMSLE`)
@@ -376,42 +390,42 @@ make_knn(4, scale.select, (as.data.frame(scale.test))[index], "mahalanobis", 0, 
 # What if we tune a scaling function?
 ####
 
-# Relative importance of different variables
-plot(import[,1]/colSums(import)[1])
-
-# Increasing the power generates a more parsimonious model
-plot(import[,1]**2/colSums(import)[1])
-
-# Reducing generates a more flexible model but can't do if importance is negative
-plot(import[,1]**(1/2)/colSums(import)[1])
-
-# Let's call this parameter alpha
-
-# This is testing with alpha = 2
-names = colnames(training)
-scale.X = scale(rbind(training,test.out.2))
-scale.X = scale.X %*% diag(import[,1]**2) ### THIS IS DIFFERENT
-colnames(scale.X) = names
-scale.train = scale.X[1:dim(training)[1],]
-scale.test = scale.X[(dim(training)[1]+1):dim(scale.X)[1],]
-scale.training.price = cbind(SalePrice,scale.train)
-
-# Run the same test as before to see what we get
-cvtest.scale=cv(scale.training.price,j=c(0.28,0.3,0.32), knn=c(7,8,9),k=5)
-plot_ly(x=cvtest.scale$k,y=cvtest.scale$Dimension,z=cvtest.scale$`Mean RMSLE`)
-# About 0.3, 8 results in a score of about 0.1445
-make_knn(8, scale.training.price, (as.data.frame(scale.test))[colnames(scale.select)[-1]],"minkowski",0.3,"knn_grid_search_scale_5.csv")
-
-# This is testing with alpha = 4
-names = colnames(training)
-scale.X = scale(rbind(training,test.out.2))
-scale.X = scale.X %*% diag(import[,1]**4) ### THIS IS DIFFERENT
-colnames(scale.X) = names
-scale.train = scale.X[1:dim(training)[1],]
-scale.test = scale.X[(dim(training)[1]+1):dim(scale.X)[1],]
-scale.training.price = cbind(SalePrice,scale.train)
-
-# Run the same test as before to see what we get
-cvtest.scale=cv(scale.training.price,j=c(0.11,0.12,0.13,0.14,0.15), knn=c(8),k=5)
-plot_ly(x=cvtest.scale$k,y=cvtest.scale$Dimension,z=cvtest.scale$`Mean RMSLE`)
-# About 0.155, 8 results in a score of about 0.148
+# # Relative importance of different variables
+# plot(import[,1]/colSums(import)[1])
+# 
+# # Increasing the power generates a more parsimonious model
+# plot(import[,1]**2/colSums(import)[1])
+# 
+# # Reducing generates a more flexible model but can't do if importance is negative
+# plot(import[,1]**(1/2)/colSums(import)[1])
+# 
+# # Let's call this parameter alpha
+# 
+# # This is testing with alpha = 2
+# names = colnames(training)
+# scale.X = scale(rbind(training,test.out.2))
+# scale.X = scale.X %*% diag(import[,1]**2) ### THIS IS DIFFERENT
+# colnames(scale.X) = names
+# scale.train = scale.X[1:dim(training)[1],]
+# scale.test = scale.X[(dim(training)[1]+1):dim(scale.X)[1],]
+# scale.training.price = cbind(SalePrice,scale.train)
+# 
+# # Run the same test as before to see what we get
+# cvtest.scale=cv(scale.training.price,j=c(0.28,0.3,0.32), knn=c(7,8,9),k=5)
+# plot_ly(x=cvtest.scale$k,y=cvtest.scale$Dimension,z=cvtest.scale$`Mean RMSLE`)
+# # About 0.3, 8 results in a score of about 0.1445
+# make_knn(8, scale.training.price, (as.data.frame(scale.test))[colnames(scale.select)[-1]],"minkowski",0.3,"knn_grid_search_scale_5.csv")
+# 
+# # This is testing with alpha = 4
+# names = colnames(training)
+# scale.X = scale(rbind(training,test.out.2))
+# scale.X = scale.X %*% diag(import[,1]**4) ### THIS IS DIFFERENT
+# colnames(scale.X) = names
+# scale.train = scale.X[1:dim(training)[1],]
+# scale.test = scale.X[(dim(training)[1]+1):dim(scale.X)[1],]
+# scale.training.price = cbind(SalePrice,scale.train)
+# 
+# # Run the same test as before to see what we get
+# cvtest.scale=cv(scale.training.price,j=c(0.11,0.12,0.13,0.14,0.15), knn=c(8),k=5)
+# plot_ly(x=cvtest.scale$k,y=cvtest.scale$Dimension,z=cvtest.scale$`Mean RMSLE`)
+# # About 0.155, 8 results in a score of about 0.148

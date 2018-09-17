@@ -1,9 +1,19 @@
+##########
+# Part 1 #
+##########
+# Make sure to have run explore.R first
+
 wd = "F:/2018 Fall/SYS 6018, Data Mining/assignments/kaggle/02_Housing/"
 setwd(paste(wd,"sys6018-competition-house-prices/final_submission_results",sep=""))
 
 # A 'light' model and a 'heavy' model. Let's try both!
 index.1=predictors(results)[1:7]
 index.2=predictors(results)[1:19]
+
+##########
+# Part 2 #
+##########
+# Variable selection moved to explore.R
 
 ##########
 # Part 3 #

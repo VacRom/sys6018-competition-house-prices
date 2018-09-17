@@ -112,7 +112,7 @@ dim(data)
 ##########
 # Outliers
 
-# Make some general plot
+# Make some general plots
 par(mfrow=c(2,2))
 for (name in names(train)) {plot(train[[name]],train.Y,main=name)}
 
@@ -166,7 +166,7 @@ rownames(all.X) = NULL
 par(mfrow=c(2,2))
 for (name in names(all.X)) {plot(all.X[[name]],all.X$LotFrontage,main=name)}
 
-# Experimenetal imputation #
+### Experimenetal imputation ###
 
 # Regress but remove noisy points to make it more linear
 plot(all.X$LotArea,all.X$LotFrontage)
@@ -176,7 +176,7 @@ plot(temp.X$LotArea,temp.X$LotFrontage)
 regress = lm(LotFrontage~LotArea, data=temp.X)
 all.X$LotFrontage[is.na(all.X$LotFrontage)]=regress$coefficients[1]+all.X$LotArea[is.na(all.X$LotFrontage)]*regress$coefficients[2]
 hist(all.X$LotFrontage)
-# Does this look reasonable? Yes!
+# Does this look reasonable? Close, could be a little better.
 plot(all.X$LotFrontage,all.X$LotArea)
 plot(all.X$LotFrontage,all.X$train.Y)
 
