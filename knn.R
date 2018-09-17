@@ -3,7 +3,7 @@
 ##########
 # Step 1 #
 ##########
-# Make sure to run explore_new.R first!!!
+# Make sure to run explore.R first!!!
 # Then use linear_model.R!!!
 
 wd = "F:/2018 Fall/SYS 6018, Data Mining/assignments/kaggle/02_Housing/"
