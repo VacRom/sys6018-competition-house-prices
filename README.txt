@@ -13,13 +13,14 @@ Justin Niestroy
 
 # GOALS
 Everyone should contribute as much as they can. Ideally reaching the minimal goals + 1 model for each person.
+Everyone should learn something about ML methods
 
 Have at LEAST one parametric model:
-1. Multiple Linear Regression
+1. Multiple Linear Regression: Chosen for its versatility and ability to be scaled to several predictors.
 
 Have at LEAST one non-parametric model:
-1. kNN
-2. Random Forest
+1. kNN: Required.
+2. Random Forest: Chosen because of its ability to be robust and prevent overfitting especially in the presence of so many predictors.
 
 # OPTIONAL
 Get a good score on the kNN modeling for extra credit.
@@ -56,23 +57,24 @@ explore.R: Exploratory analysis on the data and data cleaning
 	- Replacement (i.e. There was a year value of 2207 which should have been 2007)
 	- Mode (i.e. Replace missing values with the highest frequency level)
 	- Factor level (i.e. Replace NAs with None when relevant)
-5. Organization. Set variables as either numerical, factor, or ordinal.
+	- Note that there is a high degree of subjectivity with some of these and deciding how to impute the data can have a big impact on the results.
+5. Organization. Set variables as either numerical, factor, or ordinal. The ordinal variables were the ones which had a natural order to them (i.e. Overall House Quality from 1 to 10)
 6. General analysis. Perform some analysis on the data looking at:
 	- Plots
 	- Summary statistics
-	- Skew
+	- Skew - NOT ADDRESSED IN THIS PROJECT.
 	- Log (or Box-Cox) transformations
 7. Interacting variables. Wherever it makes sense create variables which hold information from other variables.
 8. One-Hot Encoding. Make dummy variables for non-ordinal categorical variables. (And also a second table which isn't encoded)
 9. Print
 10. Feature selection via Recursive Feature Elimination. Checks for the best features to use as well as their relationship to RMSE.
 
-linear_model.R: Multiple Linear Regression
+linear_model.R: Multiple Linear Regression. A very quick and powerful model. Different types of predictors can be fed into it in order to produce different results. It was the first type of model used.
 1. RUN EXPLORE.R (At least up to part 9)
 2. Use BIC and AIC as metrics for LINEAR feature selection. Test different models using this via lm(...)
    (For parts 2.2 and 2.5 this is particularly partial one-hot-encoded data)
 
-forest.R: Random Forest
+forest.R: Random Forest. Powerful non-parametric model. Better when there are several categories to choose from for categorical variables.
 1. RUN EXPLORE.R
 2. Pass
 3. Use randomForest package in order to make two different models.
@@ -80,7 +82,7 @@ forest.R: Random Forest
 	- heavy.rf utilitzes several of them up to about how many are relevant from BIC in the linear case
 	- heaviest.rf utilizes all predictors
 
-knn.R: K-Nearest Neighbors
+knn.R: K-Nearest Neighbors. Due to the curse of dimensionality this model did not perform well. However, we did find ways of mitigating this effect by changing the distance function from Euclidean to Minkowski and running hyperparameter tuning over p (dimension) and k (number of neighbors). In this way performance improved almost to the level of a random forest (n=10000). Other distance metrics like Mahalanobis distance were used because it accounts for the co-variance between predictors but it was not useful for many predictors as the covariance matrix become approximately singular and impossible to use.
 1. RUN EXPLORE.R AND LINEAR_MODEL.R (at least the parts indicated)
 2. Feature selection. Perform recursive feature selection again for the data with CATEGORICAL DATA removed.
    Calculate a vector which includes variable importance as determined by %delta RMSE
