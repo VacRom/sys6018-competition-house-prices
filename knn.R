@@ -24,7 +24,7 @@ temp = rbind(training,test.out.2)
 # Here are shortcuts so you don't have to run the ML models over and over again
 results$var$var=read.csv("results_var_var.csv")
 colnames(results$var$var) = "var"
-forst$importance=read.csv("forst_importance.csv")
+import=read.csv("forst_importance.csv")[,2:3]
 
 ##########
 # Step 2 #
@@ -58,23 +58,22 @@ plot(results,type=c("g","o"))
 # 
 # Resampling performance over subset size:
 #   
-#   Variables   RMSE Rsquared     MAE  RMSESD RsquaredSD    MAESD Selected
-#           2 0.1669   0.8286 0.12177 0.01625    0.02159 0.008279         
-#           4 0.1574   0.8499 0.11228 0.01814    0.02464 0.009103         
-#           8 0.1362   0.8883 0.09373 0.01326    0.01628 0.007920         
-#          16 0.1338   0.8919 0.09152 0.01267    0.01328 0.005598         
-#          32 0.1330   0.8936 0.09037 0.01302    0.01245 0.005442         
-#          64 0.1322   0.8949 0.09016 0.01393    0.01326 0.006042        *
-#         331 0.1327   0.8948 0.09009 0.01415    0.01143 0.006009         
+#   Variables  RMSE Rsquared    MAE  RMSESD RsquaredSD   MAESD Selected
+#           2 0.168    0.825 0.1220 0.01143     0.0229 0.00662         
+#           4 0.157    0.849 0.1125 0.01246     0.0241 0.00612         
+#           8 0.133    0.891 0.0909 0.01142     0.0187 0.00359        *
+#          16 0.135    0.888 0.0925 0.01088     0.0177 0.00366         
+#          32 0.134    0.891 0.0909 0.01088     0.0172 0.00411         
+#          64 0.134    0.891 0.0910 0.01067     0.0170 0.00379         
+#         331 0.134    0.891 0.0908 0.00964     0.0151 0.00346         
 # 
-# The top 5 variables (out of 64):
-# TotalSF, OverallQual, BsmtFinSF1, GrLivArea, OverallCond
-# 
-# [1] "TotalSF"             "OverallQual"         "BsmtFinSF1"          "GrLivArea"           "OverallCond"        
-# [6] "YearBuilt"           "LotArea"             "YearRemodAdd"        "X1stFlrSF"           "TotalBsmtSF"        
-# [11] "Fireplaces"          "X2ndFlrSF"           "GarageArea"          "BsmtUnfSF"           "LotFrontage"  
-
+# The top 5 variables (out of 8):
+#   TotalSF, OverallQual, BsmtFinSF1, OverallCond, YearBuilt
+#
+# [1] "TotalSF"      "OverallQual"  "BsmtFinSF1"   "OverallCond"  "YearBuilt"    "GrLivArea"   
+# [7] "LotArea"      "YearRemodAdd"
 # Calculating variable importance
+
 fordata = cbind(SalePrice,training)
 attach(fordata)
 forst = randomForest(SalePrice~.,data=fordata,importance=TRUE,ntree=5000)
@@ -83,10 +82,6 @@ import=forst$importance
 mse = import[order(-import[,1]),][,1]
 plot(1:dim(import)[1],mse)
 head(mse)
-
-# Write as csv - for future use!
-write.csv(results$var$var, file="results_var_var.csv", row.names=FALSE)
-write.csv(forst$importance, file="forst_importance.csv")
 
 ##########
 # Step 3 #
@@ -335,17 +330,14 @@ scale.train = scale.X[1:dim(training)[1],]
 scale.test = scale.X[(dim(training)[1]+1):dim(scale.X)[1],]
 scale.training.price = cbind(SalePrice,scale.train)
 
-
-
-
 # Let's try a similar range from before
 cvtest.scale=cv(scale.training.price,j=c(0.20, 0.25, 0.30, 0.35, 0.40), knn=c(1,2,3,4,5),k=5)
 plot_ly(x=cvtest.scale$k,y=cvtest.scale$Dimension,z=cvtest.scale$`Mean RMSLE`)
 
-cvtest.scale=cv(scale.training.price,j=c(0.68,0.69,0.70,0.71,0.72), knn=c(7,8,9,10,11),k=5)
+cvtest.scale=cv(scale.training.price,j=c(0.64,0.65,0.66,0.67,0.68), knn=c(8,9,10,11,12),k=5)
 plot_ly(x=cvtest.scale$k,y=cvtest.scale$Dimension,z=cvtest.scale$`Mean RMSLE`)
 
-make_knn(9, scale.training.price,scale.test,"minkowski",0.7,"knn_grid_search_scale_1.csv")
+make_knn(9, scale.training.price,scale.test,"minkowski",0.66,"knn_grid_search_scale_1.csv")
 # Very good score. Almost as good as linear regression!
 
 ####

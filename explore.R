@@ -501,24 +501,23 @@ plot(results,type=c("g","o"))
 # 
 # Resampling performance over subset size:
 #   
-#   Variables  RMSE Rsquared    MAE  RMSESD RsquaredSD   MAESD Selected
-#           2 0.204    0.740 0.1473 0.01263    0.03462 0.01280         
-#           4 0.167    0.828 0.1159 0.00627    0.01095 0.00241         
-#           8 0.156    0.851 0.1078 0.00541    0.00829 0.00365         
-#          16 0.151    0.858 0.1047 0.00759    0.01295 0.00325         
-#          32 0.145    0.870 0.0992 0.00774    0.01307 0.00384         
-#          64 0.139    0.882 0.0947 0.00750    0.01214 0.00363         
-#         128 0.139    0.882 0.0941 0.00700    0.01123 0.00351         
-#         256 0.138    0.884 0.0939 0.00647    0.01001 0.00364        *
-#         452 0.139    0.884 0.0940 0.00638    0.00993 0.00349 
+#   Variables   RMSE Rsquared     MAE   RMSESD RsquaredSD    MAESD Selected
+#           2 0.2103   0.7248 0.15109 0.011701   0.030464 0.010701         
+#           4 0.1687   0.8237 0.11784 0.006908   0.011317 0.003256         
+#           8 0.1540   0.8537 0.10623 0.006955   0.012220 0.004246         
+#          16 0.1512   0.8586 0.10504 0.007411   0.012519 0.003394         
+#          32 0.1448   0.8709 0.09943 0.008334   0.013840 0.003811         
+#          64 0.1393   0.8812 0.09484 0.006944   0.011204 0.003959         
+#         128 0.1383   0.8836 0.09380 0.005856   0.009023 0.003584         
+#         256 0.1381   0.8844 0.09370 0.006259   0.009946 0.003174        *
+#         452 0.1387   0.8834 0.09386 0.005872   0.009111 0.003172         
 # 
 # The top 5 variables (out of 256):
-#   TotalSF, GrLivArea, YearBuilt, LotArea, BsmtFinSF1
+#   TotalSF, GrLivArea, YearBuilt, BsmtFinSF1, LotArea
 # 
-# [1] "TotalSF"              "GrLivArea"            "YearBuilt"            "LotArea"             
-# [5] "BsmtFinSF1"           "YearRemodAdd"         "ExterQualTA"          "X2ndFlrSF"           
-# [9] "TotalBsmtSF"          "GarageArea"           "X1stFlrSF"            "TotalSFMisc"         
-# [13] "LotFrontage"          "GarageCars"           "BsmtUnfSF"            "Fireplaces"          
+# [1] "TotalSF"              "GrLivArea"            "YearBuilt"            "BsmtFinSF1"          
+# [5] "LotArea"              "YearRemodAdd"         "ExterQualTA"          "X2ndFlrSF"           
+# [9] "TotalBsmtSF"          "GarageArea"           "X1stFlrSF"            "LotFrontage"           
 
 #############
 # Step 10.5 #
@@ -543,21 +542,20 @@ plot(results,type=c("g","o"))
 # 
 # Resampling performance over subset size:
 #   
-#   Variables  RMSE Rsquared    MAE  RMSESD RsquaredSD   MAESD Selected
-#           2 0.168    0.824 0.1222 0.01161     0.0231 0.00669         
-#           4 0.160    0.841 0.1144 0.01125     0.0224 0.00385         
-#           8 0.139    0.882 0.0952 0.01094     0.0188 0.00464         
-#          16 0.136    0.886 0.0928 0.00985     0.0154 0.00288         
-#          32 0.131    0.895 0.0893 0.00841     0.0128 0.00273         
-#          64 0.131    0.896 0.0886 0.00876     0.0130 0.00367         
-#         128 0.130    0.897 0.0880 0.00759     0.0110 0.00277         
-#         256 0.130    0.897 0.0883 0.00834     0.0122 0.00269        *
-#         354 0.131    0.896 0.0890 0.00823     0.0120 0.00276         
+#   Variables   RMSE Rsquared     MAE   RMSESD RsquaredSD    MAESD Selected
+#           2 0.1674   0.8247 0.12219 0.011465    0.02276 0.006619         
+#           4 0.1602   0.8408 0.11449 0.011487    0.02289 0.004208         
+#           8 0.1402   0.8784 0.09637 0.017056    0.03038 0.009661         
+#          16 0.1346   0.8886 0.09198 0.008972    0.01406 0.002674         
+#          32 0.1318   0.8939 0.08930 0.009392    0.01418 0.003401         
+#          64 0.1301   0.8969 0.08827 0.008614    0.01272 0.002853        *
+#         128 0.1310   0.8956 0.08874 0.008328    0.01227 0.002983         
+#         256 0.1307   0.8962 0.08849 0.008755    0.01304 0.003371         
+#         354 0.1316   0.8952 0.08897 0.008288    0.01216 0.003172         
 # 
-# The top 5 variables (out of 256):
+# The top 5 variables (out of 64):
 #   TotalSF, OverallQual, GrLivArea, LotArea, BsmtFinSF1
 # 
-# [1] "TotalSF"              "OverallQual"          "GrLivArea"            "LotArea"             
-# [5] "BsmtFinSF1"           "OverallCond"          "YearBuilt"            "TotalBsmtSF"         
-# [9] "X2ndFlrSF"            "YearRemodAdd"         "X1stFlrSF"            "ExterQual"           
-# [13] "GarageArea"           "BsmtFinType1"         "KitchenQual"          "LotFrontage" 
+# [1] "TotalSF"             "OverallQual"         "GrLivArea"           "LotArea"            
+# [5] "BsmtFinSF1"          "OverallCond"         "YearBuilt"           "TotalBsmtSF"        
+# [9] "YearRemodAdd"        "GarageArea"          "X1stFlrSF"           "X2ndFlrSF"  
