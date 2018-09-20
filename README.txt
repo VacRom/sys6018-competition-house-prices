@@ -26,7 +26,7 @@ Get a good score on the kNN modeling for extra credit.
 
 # RESULTS
 Multiple Linear Regression: 0.12564
-kNN: 0.15022
+kNN: 0.15022*** OLD VALUE. CHECK SCREENSHOT
 Random Forest: 0.14151
 
 # FILES
